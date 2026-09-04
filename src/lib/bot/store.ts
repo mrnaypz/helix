@@ -31,7 +31,7 @@ function mergeConfig(raw: Partial<BotConfig> | undefined): BotConfig {
     interval: fromEma ? "5m" : (raw.interval ?? base.interval),
     tickMs: fromEma ? 10_000 : (raw.tickMs ?? base.tickMs),
     coins:
-      raw.coins?.length && raw.coins.join(",") !== "BTC,ETH,SOL"
+      raw.coins?.length && raw.coins.join(",") !== "ETH,SOL,HYPE"
         ? raw.coins
         : base.coins,
     strategy: migrateStrategy(raw.strategy),
