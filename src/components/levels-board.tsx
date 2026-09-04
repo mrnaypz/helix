@@ -42,9 +42,12 @@ function ChoiceRow({
           <button
             key={option.value}
             type="button"
-            onClick={() => onChange(option.value)}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              onChange(option.value);
+            }}
             className={cn(
-              "h-8 min-w-11 rounded-md px-2.5 text-xs capitalize transition-colors",
+              "relative z-10 h-8 min-w-11 cursor-pointer rounded-md px-2.5 text-xs capitalize transition-colors",
               active ? "bg-white/15 text-white" : "text-zinc-400 hover:bg-white/8 hover:text-zinc-200",
             )}
           >
@@ -102,7 +105,7 @@ export function LevelsBoard({
   };
 
   return (
-    <Card className="overflow-visible">
+    <Card className="relative z-10 overflow-visible">
       <CardHeader className="border-b">
         <CardTitle>{compact ? "Today's levels" : "Morning chart"}</CardTitle>
         <CardDescription>
@@ -147,14 +150,18 @@ export function LevelsBoard({
           </div>
           <div className="flex items-end gap-2">
             <Button
-              className="h-11 flex-1 sm:h-8 sm:flex-none"
+              className="relative z-10 h-11 flex-1 cursor-pointer sm:h-8 sm:flex-none"
               variant="outline"
               disabled={!marks[coin]}
-              onClick={() => setPrice(marks[coin] ? String(marks[coin]) : "")}
+              onPointerDown={() => setPrice(marks[coin] ? String(marks[coin]) : "")}
             >
               Use mid
             </Button>
-            <Button className="h-11 flex-1 sm:h-8 sm:flex-none" disabled={busy || !price} onClick={() => void add()}>
+            <Button
+              className="relative z-10 h-11 flex-1 cursor-pointer sm:h-8 sm:flex-none"
+              disabled={busy || !price}
+              onPointerDown={() => void add()}
+            >
               Add level
             </Button>
           </div>

@@ -16,8 +16,8 @@ export function AppHeader() {
   const pathname = usePathname();
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/8 bg-[#07080a]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="pointer-events-none sticky top-0 z-40 border-b border-white/8 bg-[#07080a]">
+        <div className="pointer-events-auto mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
             <span className="grid size-7 place-items-center rounded-md bg-emerald-400 text-[11px] font-semibold tracking-tight text-black">
               Hx
@@ -46,8 +46,8 @@ export function AppHeader() {
           </nav>
         </div>
       </header>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#07080a]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
-        <div className="grid grid-cols-4">
+      <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#07080a] pb-[env(safe-area-inset-bottom)] md:hidden">
+        <div className="pointer-events-auto grid grid-cols-4">
           {links.map((link) => {
             const active = pathname === link.href;
             const Icon = link.icon;

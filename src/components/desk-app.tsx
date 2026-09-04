@@ -75,6 +75,23 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   }, []);
 
   const run = async (action: string) => {
+    if (busy) return;
+    if (action === "start" && state.status === "running") {
+      setError("Already running.");
+      return;
+    }
+    if (action === "pause" && state.status !== "running") {
+      setError("Start the engine first.");
+      return;
+    }
+    if (action === "stop" && state.status === "stopped") {
+      setError("Already stopped.");
+      return;
+    }
+    if (action === "reset" && state.config.mode === "live") {
+      setError("Reset is only available in paper mode.");
+      return;
+    }
     setBusy(action);
     try {
       const next = await postAction(action);
@@ -136,20 +153,20 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
             first 5m engulfing trigger wins. Live orders stay locked until you add an agent wallet.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <Button className="h-11 sm:h-8" disabled={busy !== null || state.status === "running"} onClick={() => void run("start")}>
+        <div className="relative z-10 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button className="h-11 sm:h-8" onPointerDown={() => void run("start")}>
             {busy === "start" ? "Starting…" : "Start"}
           </Button>
-          <Button className="h-11 sm:h-8" variant="outline" disabled={busy !== null || state.status !== "running"} onClick={() => void run("pause")}>
+          <Button className="h-11 sm:h-8" variant="outline" onPointerDown={() => void run("pause")}>
             Pause
           </Button>
-          <Button className="h-11 sm:h-8" variant="outline" disabled={busy !== null || state.status === "stopped"} onClick={() => void run("stop")}>
+          <Button className="h-11 sm:h-8" variant="outline" onPointerDown={() => void run("stop")}>
             Stop
           </Button>
-          <Button className="h-11 sm:h-8" variant="destructive" disabled={busy !== null} onClick={() => void run("kill")}>
+          <Button className="h-11 sm:h-8" variant="destructive" onPointerDown={() => void run("kill")}>
             Kill switch
           </Button>
-          <Button className="col-span-2 h-11 sm:h-8 sm:col-span-1" variant="ghost" disabled={busy !== null || state.config.mode === "live"} onClick={() => void run("reset")}>
+          <Button className="col-span-2 h-11 sm:h-8 sm:col-span-1" variant="ghost" onPointerDown={() => void run("reset")}>
             Reset paper
           </Button>
         </div>
