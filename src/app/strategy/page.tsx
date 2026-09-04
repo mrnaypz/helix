@@ -1,7 +1,14 @@
 import { AppHeader } from "@/components/app-header";
 import { StrategyForm } from "@/components/strategy-form";
+import { getEngine } from "@/lib/bot/runtime";
+import type { PublicBotSnapshot } from "@/lib/bot/types";
 
-export default function StrategyPage() {
+export const dynamic = "force-dynamic";
+
+export default async function StrategyPage() {
+  const engine = await getEngine();
+  const snapshot = JSON.parse(JSON.stringify(engine.snapshot())) as PublicBotSnapshot;
+
   return (
     <>
       <AppHeader />
@@ -15,7 +22,7 @@ export default function StrategyPage() {
             gets replaced — risk, routing, and the desk stay.
           </p>
         </div>
-        <StrategyForm />
+        <StrategyForm initial={snapshot.state.config} />
       </main>
     </>
   );

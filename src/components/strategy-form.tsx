@@ -1,35 +1,21 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { BotConfig, PublicBotSnapshot, StrategyConfig } from "@/lib/bot/types";
+import type { BotConfig, StrategyConfig } from "@/lib/bot/types";
 
 const INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"] as const;
 
-export function StrategyForm() {
-  const [config, setConfig] = useState<BotConfig | null>(null);
-  const [coins, setCoins] = useState("BTC, ETH, SOL");
+export function StrategyForm({ initial }: { initial: BotConfig }) {
+  const [config, setConfig] = useState<BotConfig>(initial);
+  const [coins, setCoins] = useState(initial.coins.join(", "));
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    void fetch("/api/bot")
-      .then((r) => r.json())
-      .then((snap: PublicBotSnapshot) => {
-        setConfig(snap.state.config);
-        setCoins(snap.state.config.coins.join(", "));
-      })
-      .catch((err: Error) => setError(err.message));
-  }, []);
-
-  if (!config) {
-    return <p className="text-sm text-muted-foreground">Loading strategy…</p>;
-  }
 
   const s = config.strategy;
   const setS = (patch: Partial<StrategyConfig>) =>

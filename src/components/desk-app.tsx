@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -43,17 +43,10 @@ function statusTone(status: string) {
   return "bg-white/8 text-muted-foreground border-white/10";
 }
 
-export function DeskApp() {
-  const [snap, setSnap] = useState<PublicBotSnapshot | null>(null);
+export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
+  const [snap, setSnap] = useState<PublicBotSnapshot>(initial);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    const res = await fetch("/api/bot", { cache: "no-store" });
-    if (!res.ok) throw new Error("Could not load the desk");
-    setSnap((await res.json()) as PublicBotSnapshot);
-    setError(null);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +66,6 @@ export function DeskApp() {
           if (!cancelled) setError(err.message);
         });
     };
-    load();
     const id = setInterval(load, 2500);
     return () => {
       cancelled = true;
@@ -108,30 +100,6 @@ export function DeskApp() {
       })),
     [snap],
   );
-
-  if (!snap && !error) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-sm text-muted-foreground sm:px-6">
-        Connecting to Hyperliquid market data…
-      </div>
-    );
-  }
-
-  if (!snap) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Desk unavailable</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => void refresh()}>Retry</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   const { state, markets, live } = snap;
 
