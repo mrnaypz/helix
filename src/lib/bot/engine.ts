@@ -89,6 +89,8 @@ export class BotEngine {
     }
     const tickChanged = next.tickMs !== this.state.config.tickMs;
     this.state.config = next;
+    this.state.levels = this.state.levels.filter((l) => next.coins.includes(l.coin));
+    this.state.setups = this.state.setups.filter((s) => next.coins.includes(s.coin));
     if (tickChanged && this.state.status === "running") this.startLoop();
     await this.persist();
     pushEvent(this.state, { level: "info", message: "Strategy config updated" });

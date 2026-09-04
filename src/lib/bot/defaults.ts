@@ -27,7 +27,7 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
 export const DEFAULT_CONFIG: BotConfig = {
   mode: "paper",
   network: "mainnet",
-  coins: ["BTC", "ETH", "SOL"],
+  coins: ["ETH", "SOL", "HYPE"],
   interval: "5m",
   tickMs: 10_000,
   startingEquity: 10_000,

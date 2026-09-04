@@ -36,7 +36,7 @@ export function LevelsBoard({
   compact?: boolean;
   onChange?: (next: PublicBotSnapshot) => void;
 }) {
-  const [coin, setCoin] = useState(snapshot.state.config.coins[0] ?? "BTC");
+  const [coin, setCoin] = useState(snapshot.state.config.coins[0] ?? "ETH");
   const [kind, setKind] = useState<LevelKind>("resistance");
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
