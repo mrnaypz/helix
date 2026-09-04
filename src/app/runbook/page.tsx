@@ -97,11 +97,12 @@ export default function RunbookPage() {
               Helix has to keep running on a laptop, home PC, or VPS. Your phone just opens the same desk in Safari or
               Chrome. Chart levels, start, pause, stop, and kill from there.
             </Need>
-            <Need title="Best: Tailscale">
-              Install Tailscale on the machine that runs Helix and on your phone. Start the desk with `npm run start`
-              (it already listens on all interfaces at port 43187). On the phone, open
-              `http://100.x.x.x:43187` using that machine&apos;s Tailscale IP. Stay on your tailnet — do not port-forward
-              this desk onto the public internet.
+            <Need title="Best: Tailscale Serve (required on WSL)">
+              Helix runs inside Ubuntu. Tailscale runs on Windows. The phone cannot use
+              `http://100.x.x.x:43187` — that IP never reaches Ubuntu. In Windows PowerShell run{" "}
+              <span className="font-mono text-foreground">tailscale serve --bg --yes 43187</span>, then open the{" "}
+              <span className="font-mono text-foreground">https://….ts.net</span> URL it prints. Same Tailscale
+              account on the phone, VPN on. Do not port-forward this desk onto the public internet.
             </Need>
             <Need title="If you use a public URL">
               Set `HELIX_PIN` in `.env.local` before you tunnel (Cloudflare Tunnel, ngrok, etc.). The phone will ask
