@@ -6,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -85,31 +92,49 @@ export function LevelsBoard({
         <div className={cn("grid gap-3", compact ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-5")}>
           <div className="space-y-1.5">
             <Label>Market</Label>
-            <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-              value={coin}
-              onChange={(e) => setCoin(e.target.value)}
-            >
-              {snapshot.state.config.coins.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <Select value={coin} onValueChange={(value) => value && setCoin(value)}>
+              <SelectTrigger className="w-full bg-[#12141a] text-foreground hover:bg-[#171a22]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                alignItemWithTrigger={false}
+                align="start"
+                className="bg-[#12141a] text-foreground ring-white/15"
+              >
+                {snapshot.state.config.coins.map((c) => (
+                  <SelectItem
+                    key={c}
+                    value={c}
+                    className="text-foreground focus:bg-white/10 focus:text-foreground"
+                  >
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-              value={kind}
-              onChange={(e) => setKind(e.target.value as LevelKind)}
-            >
-              {KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
+            <Select value={kind} onValueChange={(value) => value && setKind(value as LevelKind)}>
+              <SelectTrigger className="w-full bg-[#12141a] text-foreground hover:bg-[#171a22]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                alignItemWithTrigger={false}
+                align="start"
+                className="bg-[#12141a] text-foreground ring-white/15"
+              >
+                {KINDS.map((k) => (
+                  <SelectItem
+                    key={k}
+                    value={k}
+                    className="text-foreground capitalize focus:bg-white/10 focus:text-foreground"
+                  >
+                    {k}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Price</Label>
