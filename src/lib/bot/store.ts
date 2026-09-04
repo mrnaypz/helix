@@ -24,6 +24,9 @@ function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConf
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
     stopLossRoePct: incoming.stopLossRoePct ?? DEFAULT_STRATEGY.stopLossRoePct,
     takeProfitRoePct: incoming.takeProfitRoePct ?? DEFAULT_STRATEGY.takeProfitRoePct,
+    breakEvenRoePct: incoming.breakEvenRoePct ?? DEFAULT_STRATEGY.breakEvenRoePct,
+    giveUpRoePct: incoming.giveUpRoePct ?? DEFAULT_STRATEGY.giveUpRoePct,
+    giveUpBars: incoming.giveUpBars ?? DEFAULT_STRATEGY.giveUpBars,
     marginPct: incoming.marginPct ?? DEFAULT_STRATEGY.marginPct,
     ...(fromEma
       ? {
@@ -56,7 +59,11 @@ export async function loadState(): Promise<BotState> {
     parsed.config = mergeConfig(parsed.config);
     parsed.events = parsed.events ?? [];
     parsed.fills = parsed.fills ?? [];
-    parsed.positions = parsed.positions ?? [];
+    parsed.positions = (parsed.positions ?? []).map((p) => ({
+      ...p,
+      breakEvenStop: p.breakEvenStop ?? false,
+      giveUpArmedBarTime: p.giveUpArmedBarTime ?? null,
+    }));
     parsed.equityCurve = parsed.equityCurve ?? [];
     parsed.lastSignals = parsed.lastSignals ?? [];
     parsed.lastBarProcessed = parsed.lastBarProcessed ?? {};

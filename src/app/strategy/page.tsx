@@ -18,7 +18,8 @@ export default async function StrategyPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Price action</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             5-minute New York session. One asset at a time. Size is 70% of the account as margin. Stops and targets are
-            5% and 10% ROE, inclusive of leverage. Plot levels on the Levels page.
+            5% and 10% ROE, inclusive of leverage. Break-even after 5.5% ROE; a 5-bar give-up after 8% ROE. Plot levels
+            on the Levels page.
           </p>
         </div>
         <StrategyForm initial={snapshot.state.config} />

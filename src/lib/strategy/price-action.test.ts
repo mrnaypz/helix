@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_CONFIG, DEFAULT_STRATEGY, createPaperAccount } from "../bot/defaults";
-import type { Candle, ChartLevel } from "../bot/types";
+import type { Candle, ChartLevel, Position } from "../bot/types";
 import { paperFill, markToMarket } from "../bot/paper";
-import { priceMovePctFromRoe, sizeFromMargin, sizeFromRisk, stopTakeFromRoe } from "./risk";
+import { priceMovePctFromRoe, sizeFromMargin, sizeFromRisk, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven } from "./risk";
 import { formatClock, parseClock, sessionStatus } from "./session";
 import { bearishEngulfing, bullishEngulfing, evaluatePriceAction } from "./price-action";
 
@@ -65,11 +65,24 @@ describe("session clock", () => {
 });
 
 describe("engulfing", () => {
-  it("detects a bullish engulfing continuation", () => {
+  it("detects a bullish engulfing that closes above the previous wick", () => {
     const prev = bar(0, 101, 101.2, 99.8, 100);
     const curr = bar(1, 99.9, 102.2, 99.7, 102);
     assert.equal(bullishEngulfing(prev, curr), true);
     assert.equal(bearishEngulfing(prev, curr), false);
+  });
+
+  it("rejects a body engulfing that does not close beyond the previous wick", () => {
+    const prev = bar(0, 101, 103.4, 99.8, 100);
+    const curr = bar(1, 99.9, 102.8, 99.7, 102.5);
+    assert.equal(bullishEngulfing(prev, curr), false);
+  });
+
+  it("detects a bearish engulfing that closes below the previous wick", () => {
+    const prev = bar(0, 100, 101.2, 99.8, 101);
+    const curr = bar(1, 101.1, 101.2, 98.5, 98.7);
+    assert.equal(bearishEngulfing(prev, curr), true);
+    assert.equal(bullishEngulfing(prev, curr), false);
   });
 });
 
@@ -196,6 +209,51 @@ describe("risk sizing", () => {
       config: DEFAULT_CONFIG,
     });
     assert.equal(sized.notional, 7000);
+  });
+});
+
+describe("trade management", () => {
+  function longAt(entry: number, mark: number, extra: Partial<Position> = {}): Position {
+    return {
+      coin: "BTC",
+      side: "long",
+      size: 1,
+      entryPrice: entry,
+      markPrice: mark,
+      stopPrice: entry * 0.995,
+      takePrice: entry * 1.01,
+      leverage: 10,
+      notional: mark,
+      unrealizedPnl: 0,
+      openedAt: 1,
+      atrAtEntry: 1,
+      breakEvenStop: false,
+      giveUpArmedBarTime: null,
+      ...extra,
+    };
+  }
+
+  it("moves the stop to break-even after 0.55% (5.5% ROE at 10x)", () => {
+    const before = longAt(100, 100.54);
+    assert.equal(shouldMoveStopToBreakEven(before, 100.54, DEFAULT_STRATEGY), false);
+    const at = longAt(100, 100.55);
+    assert.ok(Math.abs(favorablePriceMovePct(at, 100.55) - 0.55) < 1e-9);
+    assert.equal(shouldMoveStopToBreakEven(at, 100.55, DEFAULT_STRATEGY), true);
+    moveStopToBreakEven(at);
+    assert.equal(at.stopPrice, 100);
+    assert.equal(at.breakEvenStop, true);
+    assert.equal(shouldMoveStopToBreakEven(at, 100.8, DEFAULT_STRATEGY), false);
+  });
+
+  it("arms a 5-bar give-up after 0.8% and flattens once five later bars close", () => {
+    const pos = longAt(100, 100.8);
+    assert.equal(shouldArmGiveUp(pos, 100.79, DEFAULT_STRATEGY), false);
+    assert.equal(shouldArmGiveUp(pos, 100.8, DEFAULT_STRATEGY), true);
+    pos.giveUpArmedBarTime = 1_000;
+    const four = [1000, 1300, 1600, 1900, 2200];
+    assert.equal(shouldGiveUp(pos, four, DEFAULT_STRATEGY), false);
+    const five = [...four, 2500];
+    assert.equal(shouldGiveUp(pos, five, DEFAULT_STRATEGY), true);
   });
 });
 

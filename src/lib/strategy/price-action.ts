@@ -22,13 +22,14 @@ export function bullishEngulfing(prev: Candle, curr: Candle): boolean {
   if (!isBullish(curr)) return false;
   if (!isBearish(prev) && prev.c === prev.o) return false;
   if (isBullish(prev)) return false;
-  return bodyLow(curr) <= bodyLow(prev) && bodyHigh(curr) >= bodyHigh(prev);
+  // Body still wraps the previous body, and the close must clear the previous wick — not only the body high.
+  return bodyLow(curr) <= bodyLow(prev) && curr.c > prev.h;
 }
 
 export function bearishEngulfing(prev: Candle, curr: Candle): boolean {
   if (!isBearish(curr)) return false;
   if (isBearish(prev)) return false;
-  return bodyLow(curr) <= bodyLow(prev) && bodyHigh(curr) >= bodyHigh(prev);
+  return bodyHigh(curr) >= bodyHigh(prev) && curr.c < prev.l;
 }
 
 function replayLevel(args: {

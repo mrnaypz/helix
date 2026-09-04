@@ -109,7 +109,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Execution desk</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Chart your levels in the morning, then start the engine for the New York session. One asset at a time: the
-            first 5m engulfing trigger wins. Live orders stay locked until you add an agent wallet.
+            first 5m engulfing close beyond the prior wick wins. Live orders stay locked until you add an agent wallet.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -256,7 +256,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
             <CardDescription>
-              5% ROE stop and 10% ROE target, inclusive of leverage. One market at a time.
+              5% ROE stop, 10% ROE target. Stop to break-even after 5.5% ROE. After 8% ROE, five more 5m bars without
+              the target flattens the trade.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -288,6 +289,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                       <TableCell className="font-mono">{formatPx(p.entryPrice)}</TableCell>
                       <TableCell className="font-mono text-xs">
                         {formatPx(p.stopPrice)} / {formatPx(p.takePrice)}
+                        {p.breakEvenStop ? " · BE" : ""}
+                        {p.giveUpArmedBarTime != null ? " · clock" : ""}
                       </TableCell>
                       <TableCell className={clsxPositive(p.unrealizedPnl)}>{signedMoney(p.unrealizedPnl)}</TableCell>
                     </TableRow>

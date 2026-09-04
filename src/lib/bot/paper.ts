@@ -64,6 +64,8 @@ export function paperFill(args: {
       unrealizedPnl: 0,
       openedAt: Date.now(),
       atrAtEntry: args.atrAtEntry ?? 0,
+      breakEvenStop: false,
+      giveUpArmedBarTime: null,
     };
   } else {
     const existing = args.positions.find((p) => p.coin === args.coin);

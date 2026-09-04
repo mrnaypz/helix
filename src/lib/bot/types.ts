@@ -55,6 +55,9 @@ export type StrategyConfig = {
   stopBufferAtr: number;
   stopLossRoePct: number;
   takeProfitRoePct: number;
+  breakEvenRoePct: number;
+  giveUpRoePct: number;
+  giveUpBars: number;
   marginPct: number;
 };
 
@@ -102,6 +105,8 @@ export type Position = {
   unrealizedPnl: number;
   openedAt: number;
   atrAtEntry: number;
+  breakEvenStop: boolean;
+  giveUpArmedBarTime: number | null;
 };
 
 export type Fill = {

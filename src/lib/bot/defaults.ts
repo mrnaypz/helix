@@ -25,6 +25,9 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   stopBufferAtr: 0.1,
   stopLossRoePct: 5,
   takeProfitRoePct: 10,
+  breakEvenRoePct: 5.5,
+  giveUpRoePct: 8,
+  giveUpBars: 5,
   marginPct: 70,
 };
 

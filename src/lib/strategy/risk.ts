@@ -63,6 +63,54 @@ export function hitTake(position: Position, mark: number): boolean {
   return position.side === "long" ? mark >= position.takePrice : mark <= position.takePrice;
 }
 
+export function favorablePriceMovePct(
+  position: Pick<Position, "side" | "entryPrice">,
+  mark: number,
+): number {
+  if (position.entryPrice <= 0) return 0;
+  const raw =
+    position.side === "long"
+      ? (mark - position.entryPrice) / position.entryPrice
+      : (position.entryPrice - mark) / position.entryPrice;
+  return Math.max(0, raw * 100);
+}
+
+function reachedRoeMove(position: Pick<Position, "side" | "entryPrice" | "leverage">, mark: number, roePct: number): boolean {
+  const need = (priceMovePctFromRoe(roePct, position.leverage) / 100) * position.entryPrice;
+  const move =
+    position.side === "long" ? mark - position.entryPrice : position.entryPrice - mark;
+  return move + 1e-12 >= need;
+}
+
+export function shouldMoveStopToBreakEven(position: Position, mark: number, config: StrategyConfig): boolean {
+  if (position.breakEvenStop) return false;
+  return reachedRoeMove(position, mark, config.breakEvenRoePct);
+}
+
+export function moveStopToBreakEven(position: Position): void {
+  position.stopPrice = position.entryPrice;
+  position.breakEvenStop = true;
+}
+
+export function shouldArmGiveUp(position: Position, mark: number, config: StrategyConfig): boolean {
+  if (position.giveUpArmedBarTime != null) return false;
+  return reachedRoeMove(position, mark, config.giveUpRoePct);
+}
+
+export function closedBarsAfter(barTimes: number[], armedBarTime: number): number {
+  return barTimes.filter((t) => t > armedBarTime).length;
+}
+
+export function shouldGiveUp(
+  position: Position,
+  closedBarTimes: number[],
+  config: StrategyConfig,
+): boolean {
+  if (position.giveUpArmedBarTime == null) return false;
+  const wait = Math.max(1, Math.round(config.giveUpBars));
+  return closedBarsAfter(closedBarTimes, position.giveUpArmedBarTime) >= wait;
+}
+
 export function unrealized(position: Pick<Position, "side" | "size" | "entryPrice">, mark: number): number {
   const dir = position.side === "long" ? 1 : -1;
   return (mark - position.entryPrice) * position.size * dir;

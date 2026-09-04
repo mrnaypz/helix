@@ -3,13 +3,24 @@ import { markToMarket, paperFill } from "./paper";
 import { loadState, migrateCoins, saveState } from "./store";
 import { evaluatePriceAction } from "../strategy/price-action";
 import { sessionStatus } from "../strategy/session";
-import { hitStop, hitTake, sizeFromMargin, stopTakeFromRoe } from "../strategy/risk";
+import {
+  hitStop,
+  hitTake,
+  moveStopToBreakEven,
+  priceMovePctFromRoe,
+  shouldArmGiveUp,
+  shouldGiveUp,
+  shouldMoveStopToBreakEven,
+  sizeFromMargin,
+  stopTakeFromRoe,
+} from "../strategy/risk";
 import { canTradeLive, liveReadiness, placeMarketLike, setLeverage } from "../hyperliquid/exchange";
 import { fetchCandles, fetchMarkets } from "../hyperliquid/info";
 import type {
   BotConfig,
   BotEvent,
   BotState,
+  Candle,
   ChartLevel,
   Fill,
   LevelKind,
@@ -251,7 +262,8 @@ export class BotEngine {
       this.recordEquity();
 
       if (this.state.status === "running") {
-        await this.enforceStops(marks);
+        const candlesByCoin = await this.loadCandles();
+        await this.managePositions(marks, candlesByCoin);
         await this.maybeFlattenSession();
         if (this.breachedDailyLoss()) {
           this.state.status = "halted";
@@ -259,7 +271,7 @@ export class BotEngine {
           this.stopLoop();
           pushEvent(this.state, { level: "warn", message: this.state.haltReason });
         } else {
-          await this.evaluateEntries();
+          await this.evaluateEntries(candlesByCoin);
         }
       }
 
@@ -334,32 +346,79 @@ export class BotEngine {
     this.state.lastSessionFlattenDate = session.dateKey;
   }
 
-  private async enforceStops(marks: Record<string, number>) {
-    for (const pos of [...this.state.positions]) {
-      const mark = marks[pos.coin];
-      if (!mark) continue;
-      if (hitStop(pos, mark)) {
-        await this.closePosition(pos.coin, "Stop — 5% ROE from entry");
-      } else if (hitTake(pos, mark)) {
-        await this.closePosition(pos.coin, "Take-profit — 10% ROE from entry");
-      }
-    }
-  }
-
-  private async evaluateEntries() {
+  private async loadCandles(): Promise<Map<string, Candle[]>> {
     const { config } = this.state;
-    const signals: Signal[] = [];
-    const setups: LevelSetup[] = [];
-    const lookback = 120;
-    const candidates: Signal[] = [];
-
+    const candlesByCoin = new Map<string, Candle[]>();
     for (const coin of config.coins) {
       const candles = await fetchCandles({
         network: this.dataNetwork(),
         coin,
         interval: config.interval,
-        count: lookback,
+        count: 120,
       });
+      candlesByCoin.set(coin, candles);
+    }
+    return candlesByCoin;
+  }
+
+  private async managePositions(marks: Record<string, number>, candlesByCoin: Map<string, Candle[]>) {
+    const { config } = this.state;
+    for (const pos of [...this.state.positions]) {
+      const mark = marks[pos.coin];
+      if (!mark) continue;
+      const live = this.state.positions.find((p) => p.coin === pos.coin);
+      if (!live) continue;
+      const candles = candlesByCoin.get(pos.coin) ?? [];
+      const barTimes = candles.map((c) => c.t);
+      const lastBarTime = barTimes.at(-1);
+
+      if (hitTake(live, mark)) {
+        await this.closePosition(live.coin, "Take-profit — 10% ROE from entry");
+        continue;
+      }
+      if (hitStop(live, mark)) {
+        await this.closePosition(
+          live.coin,
+          live.breakEvenStop ? "Stop — break-even" : "Stop — 5% ROE from entry",
+        );
+        continue;
+      }
+
+      if (shouldMoveStopToBreakEven(live, mark, config.strategy)) {
+        moveStopToBreakEven(live);
+        pushEvent(this.state, {
+          level: "info",
+          coin: live.coin,
+          message: `Stop to break-even on ${live.coin} after ${config.strategy.breakEvenRoePct}% ROE (${priceMovePctFromRoe(config.strategy.breakEvenRoePct, live.leverage)}% price)`,
+        });
+      }
+
+      if (shouldArmGiveUp(live, mark, config.strategy) && lastBarTime != null) {
+        live.giveUpArmedBarTime = lastBarTime;
+        pushEvent(this.state, {
+          level: "info",
+          coin: live.coin,
+          message: `Armed ${config.strategy.giveUpBars}-bar clock on ${live.coin} after ${config.strategy.giveUpRoePct}% ROE. Flatten if the target is not hit.`,
+        });
+      }
+
+      if (shouldGiveUp(live, barTimes, config.strategy)) {
+        await this.closePosition(
+          live.coin,
+          `Time stop — ${config.strategy.giveUpBars} bars after ${config.strategy.giveUpRoePct}% ROE without target`,
+        );
+      }
+    }
+  }
+
+  private async evaluateEntries(candlesByCoin: Map<string, Candle[]>) {
+    const { config } = this.state;
+    const signals: Signal[] = [];
+    const setups: LevelSetup[] = [];
+    const candidates: Signal[] = [];
+
+    for (const coin of config.coins) {
+      const candles = candlesByCoin.get(coin) ?? [];
       const result = evaluatePriceAction({
         coin,
         candles,

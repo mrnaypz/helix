@@ -10,6 +10,7 @@ export async function getEngine(): Promise<BotEngine> {
     globalForBot.helixEngine &&
     (typeof globalForBot.helixEngine.addLevel !== "function" ||
       typeof globalForBot.helixEngine.state.config.strategy.stopLossRoePct !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.breakEvenRoePct !== "number" ||
       !globalForBot.helixEngine.state.config.coins.includes("HYPE"))
   ) {
     globalForBot.helixEngine = undefined;

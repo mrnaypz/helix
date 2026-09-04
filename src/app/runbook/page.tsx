@@ -23,9 +23,9 @@ export default function RunbookPage() {
             <ol className="list-decimal space-y-2 pl-5 text-foreground/90">
               <li>You plot support and resistance from your morning chart (previous day high/low, overnight range, equal highs, etc.).</li>
               <li>Start the engine when you want it watching. Entries are blocked until 09:30 ET (editable).</li>
-              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then a closed engulfing candle.</li>
+              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then a closed engulfing candle that finishes beyond the previous wick.</li>
               <li>If a 5m candle closes back through the level, that level is dead. No trade.</li>
-              <li>One market at a time. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is 5% ROE and target is 10% ROE, inclusive of leverage.</li>
+              <li>One market at a time. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is 5% ROE and target is 10% ROE, inclusive of leverage. After 5.5% ROE (0.55% price at 10x) the stop moves to break-even. After 8% ROE (0.8% price) it waits five 5m candles and flattens if the target is still open.</li>
               <li>At 16:00 ET it flattens (optional). Kill switch is always available.</li>
             </ol>
           </CardContent>
@@ -67,7 +67,7 @@ export default function RunbookPage() {
             <ol className="list-decimal space-y-2 pl-5">
               <li>A 5m candle closes above your resistance.</li>
               <li>At least three later 5m candles stay above the level. They do not have to wick into it.</li>
-              <li>A later 5m candle is bullish and fully engulfs the previous candle&apos;s body. That close is the entry.</li>
+              <li>A later 5m candle is bullish and fully engulfs the previous candle&apos;s body, and its close is above the previous wick (not only the body). That close is the entry.</li>
               <li>If any 5m candle closes back below the resistance before entry, the level is invalidated. The bot will not trade it.</li>
             </ol>
             <p className="pt-2 text-foreground/90">Short is the mirror off support, only if shorts are enabled.</p>
