@@ -105,11 +105,13 @@ export default function RunbookPage() {
               Chrome. Chart levels, start, pause, stop, and kill from there.
             </Need>
             <Need title="Best: Tailscale Serve (required on WSL)">
-              Helix runs inside Ubuntu. Tailscale runs on Windows. The phone cannot use
-              `http://100.x.x.x:43187` — that IP never reaches Ubuntu. In Windows PowerShell run{" "}
-              <span className="font-mono text-foreground">tailscale serve --bg --yes 43187</span>, then open the{" "}
-              <span className="font-mono text-foreground">https://….ts.net</span> URL it prints. Same Tailscale
-              account on the phone, VPN on. Do not port-forward this desk onto the public internet.
+              Helix runs inside Ubuntu. Tailscale runs on Windows. Never open{" "}
+              <span className="font-mono text-foreground">http://100.x.x.x:43187</span>. In PowerShell:{" "}
+              <span className="font-mono text-foreground">tailscale serve --bg --yes 43187</span> and{" "}
+              <span className="font-mono text-foreground">tailscale serve --bg --http=80 43187</span>. At home you can
+              use the <span className="font-mono text-foreground">https://….ts.net</span> URL. Away from home, Wi-Fi →
+              cellular often shows DNS unavailable — toggle Tailscale on the phone, then open{" "}
+              <span className="font-mono text-foreground">http://100.x.x.x</span> (no port). Laptop must stay awake.
             </Need>
             <Need title="If you use a public URL">
               Set `HELIX_PIN` in `.env.local` before you tunnel (Cloudflare Tunnel, ngrok, etc.). The phone will ask

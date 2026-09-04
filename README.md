@@ -28,18 +28,35 @@ npm run dev
 
 Wait until it says Ready (or the local URL). Leave this Ubuntu window open.
 
-4. Phone: Tailscale VPN **on**. Open the same `https://….ts.net` bookmark you used yesterday (Add to Home Screen). Chart levels, then hit **Start** on the desk.
+4. Phone: Tailscale VPN **on**. At home, the `https://….ts.net` bookmark is fine. Away from home, prefer the IP bookmark below. Chart levels, then hit **Start** on the desk.
 
 That is the whole sync. The phone is a remote for the Ubuntu process. Closing the phone or Brave does not stop the bot. Closing Ubuntu, `Ctrl+C`, sleep, or shutdown does.
 
-Serve is already on from the first setup. Only if the phone cannot load the `.ts.net` page, run this in **Windows PowerShell** (not Ubuntu):
+### Away from home
+
+Leaving Wi-Fi often breaks Tailscale DNS. The app shows **DNS unavailable**, and the `https://….ts.net` page will not load even though Helix is still running.
+
+On the phone, in this order:
+
+1. Confirm the laptop is still awake at home (lid open or Sleep = Never, Ubuntu still showing `npm run dev`).
+2. Tailscale app → disconnect, wait 5 seconds, connect again. Do this after you are on cellular, not while still on home Wi-Fi.
+3. Open the **IP** bookmark, not the `.ts.net` name: `http://100.98.58.62` (no port). That skips DNS.
+
+Add HTTP Serve once on the PC so that IP works (PowerShell, not Ubuntu):
 
 ```powershell
 & "C:\Program Files\Tailscale\tailscale.exe" serve --bg --yes 43187
+& "C:\Program Files\Tailscale\tailscale.exe" serve --bg --http=80 43187
 & "C:\Program Files\Tailscale\tailscale.exe" serve status
 ```
 
-Then open the URL it prints.
+Bookmark both URLs status prints. Use `.ts.net` at home if you want. Use `http://100.x.x.x` when you leave.
+
+If DNS unavailable persists: Tailscale phone settings → turn **off** “Use Tailscale DNS”. Then only the `http://100.x` bookmark will work, which is enough for Helix.
+
+Do **not** use `http://100.x.x.x:43187`. That port is inside Ubuntu, not on Windows.
+
+Serve is already on from the first setup. Only if both bookmarks fail, re-run the two `serve --bg` lines above.
 
 ## Run locally
 
@@ -66,10 +83,11 @@ Do **not** open `http://100.x.x.x:43187` if Helix is running in WSL (Ubuntu). Ta
 ```powershell
 & "C:\Program Files\Tailscale\tailscale.exe" serve reset
 & "C:\Program Files\Tailscale\tailscale.exe" serve --bg --yes 43187
+& "C:\Program Files\Tailscale\tailscale.exe" serve --bg --http=80 43187
 & "C:\Program Files\Tailscale\tailscale.exe" serve status
 ```
 
-4. Status prints an `https://….ts.net` URL. Open **that** on the phone. No port number. Do not use the `100.x` IP.
+4. Status prints an `https://….ts.net` URL (home / DNS) and, if you added `--http=80`, an `http://100.x.x.x` URL (cellular / no DNS). Bookmark both. Never use `:43187` on the phone.
 
 Serve stays on across reboots until you run `tailscale serve reset`. You still have to start Ubuntu and `npm run dev` each day.
 
