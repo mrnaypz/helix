@@ -44,6 +44,13 @@ export default function RunbookPage() {
               You can leave the process running. It will not take a new trade before the New York window. Premarket is
               for charting, not for the bot to hunt.
             </Need>
+            <Need title="Wake the laptop first">
+              Open Ubuntu, <span className="font-mono text-foreground">cd ~/hyperliquid-strategy</span>, then{" "}
+              <span className="font-mono text-foreground">npm run dev</span>. Leave that window up. On the phone,
+              turn Tailscale on and open yesterday&apos;s <span className="font-mono text-foreground">https://….ts.net</span>{" "}
+              bookmark. You do not redo Serve unless that page fails. Brave can close; Ubuntu cannot. Sleep and lid-close
+              stop the bot.
+            </Need>
             <Need title="Start it for the cash session">
               At or just before 09:30 ET, hit Start on the desk. Confirm the session badge reads NY open and that
               today&apos;s levels are armed.

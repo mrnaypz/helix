@@ -13,6 +13,34 @@ Hyperliquid execution desk for a New York session price-action strategy. You cha
 
 Paper mode is the default. No Hyperliquid orders are sent until you add an agent wallet and switch execution to live.
 
+## Morning start (Windows + phone)
+
+Do this after you open the laptop. You do not need Brave left open. You do not re-enable Tailscale Serve unless the phone URL dies.
+
+1. Plug in if you can. Sleep = Never, or the lid-close will kill the bot.
+2. Open **Ubuntu**. Wait until you see `harry@Napier`.
+3. Start Helix:
+
+```bash
+cd ~/hyperliquid-strategy
+npm run dev
+```
+
+Wait until it says Ready (or the local URL). Leave this Ubuntu window open.
+
+4. Phone: Tailscale VPN **on**. Open the same `https://….ts.net` bookmark you used yesterday (Add to Home Screen). Chart levels, then hit **Start** on the desk.
+
+That is the whole sync. The phone is a remote for the Ubuntu process. Closing the phone or Brave does not stop the bot. Closing Ubuntu, `Ctrl+C`, sleep, or shutdown does.
+
+Serve is already on from the first setup. Only if the phone cannot load the `.ts.net` page, run this in **Windows PowerShell** (not Ubuntu):
+
+```powershell
+& "C:\Program Files\Tailscale\tailscale.exe" serve --bg --yes 43187
+& "C:\Program Files\Tailscale\tailscale.exe" serve status
+```
+
+Then open the URL it prints.
+
 ## Run locally
 
 ```bash
