@@ -1,10 +1,17 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createInitialState, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
+import { createInitialState, CORE_COINS, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
 import type { BotConfig, BotState, StrategyConfig } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STATE_PATH = path.join(DATA_DIR, "bot-state.json");
+
+export function migrateCoins(raw?: string[] | null): string[] {
+  const extra = (raw ?? [])
+    .map((coin) => coin.trim().toUpperCase())
+    .filter((coin) => coin && !(CORE_COINS as readonly string[]).includes(coin));
+  return [...CORE_COINS, ...extra];
+}
 
 function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConfig {
   const incoming = raw ?? {};
@@ -37,10 +44,7 @@ function mergeConfig(raw: Partial<BotConfig> | undefined): BotConfig {
     ...raw,
     interval: fromEma ? "5m" : (raw.interval ?? base.interval),
     tickMs: fromEma ? 10_000 : (raw.tickMs ?? base.tickMs),
-    coins:
-      raw.coins?.length && raw.coins.join(",") !== "ETH,SOL,HYPE"
-        ? raw.coins
-        : base.coins,
+    coins: migrateCoins(raw.coins),
     strategy: migrateStrategy(raw.strategy),
   };
 }

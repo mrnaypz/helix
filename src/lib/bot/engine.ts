@@ -1,6 +1,6 @@
 import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
 import { markToMarket, paperFill } from "./paper";
-import { loadState, saveState } from "./store";
+import { loadState, migrateCoins, saveState } from "./store";
 import { evaluatePriceAction } from "../strategy/price-action";
 import { sessionStatus } from "../strategy/session";
 import { hitStop, hitTake, sizeFromMargin, stopTakeFromRoe } from "../strategy/risk";
@@ -41,6 +41,7 @@ export class BotEngine {
       ...this.state.config.strategy,
       maxPositions: 1,
     };
+    this.state.config.coins = migrateCoins(this.state.config.coins);
   }
 
   static async create(): Promise<BotEngine> {
@@ -80,7 +81,7 @@ export class BotEngine {
     const next: BotConfig = {
       ...this.state.config,
       ...patch,
-      coins: patch.coins?.length ? patch.coins : this.state.config.coins,
+      coins: migrateCoins(patch.coins?.length ? patch.coins : this.state.config.coins),
       strategy: { ...this.state.config.strategy, ...(patch.strategy ?? {}), maxPositions: 1 },
     };
     if (next.mode === "live" && !canTradeLive()) {
