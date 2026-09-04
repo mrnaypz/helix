@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import type { PublicBotSnapshot } from "@/lib/bot/types";
 import { clsxPositive, compactNumber, formatPx, money, pct, relativeTime, signedMoney } from "@/lib/format";
+import { LevelsBoard } from "@/components/levels-board";
 import { cn } from "cn";
 
 async function postAction(action: string) {
@@ -102,6 +103,15 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   );
 
   const { state, markets, live } = snap;
+  const session = snap.session ?? {
+    inSession: false,
+    weekend: false,
+    dateKey: "",
+    clock: "—",
+    label: "Session clock unavailable",
+    startLabel: "09:30",
+    endLabel: "16:00",
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -110,7 +120,10 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={cn("border capitalize", statusTone(state.status))}>{state.status}</Badge>
             <Badge variant="outline">{state.config.mode === "live" ? "Shadow book" : "Paper"} · {state.config.network}</Badge>
-            <Badge variant="outline">{state.config.interval} EMA {state.config.strategy.fastEma}/{state.config.strategy.slowEma}</Badge>
+            <Badge variant="outline">{state.config.interval} price action</Badge>
+            <Badge className={cn("border", session.inSession ? "border-emerald-400/30 text-emerald-300" : "border-white/10 text-muted-foreground")}>
+              {session.clock} · {session.inSession ? "NY open" : "NY closed"}
+            </Badge>
             {state.lastTickAt ? (
               <span className="text-xs text-muted-foreground">Tick {relativeTime(state.lastTickAt)}</span>
             ) : (
@@ -119,8 +132,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Execution desk</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Paper-trades live Hyperliquid perps with a dual-EMA trend system, ATR stops, and hard risk limits.
-            Live orders stay locked until you add an agent wallet.
+            Chart your levels in the morning, then start the engine for the New York session. It watches 5-minute
+            Hyperliquid candles for a break, a pullback, and an engulfing continuation. Live orders stay locked until
+            you add an agent wallet.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -155,6 +169,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           Halted: {state.haltReason}
         </div>
       ) : null}
+      <div className={`rounded-lg border px-3 py-2 text-sm ${session.inSession ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/4 text-muted-foreground"}`}>
+        {session.label}. {state.levels.length === 0 ? "No levels charted yet — add them below before the open." : `${state.levels.length} level${state.levels.length === 1 ? "" : "s"} armed.`}
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
@@ -163,7 +180,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           hint={`${signedMoney(totalPnl)} (${pct(totalPct)})`}
           tone={totalPnl}
         />
-        <Stat label="Day PnL" value={signedMoney(dayPnl)} hint={`${pct(dayPct)} vs UTC open`} tone={dayPnl} />
+        <Stat label="Day PnL" value={signedMoney(dayPnl)} hint={`${pct(dayPct)} vs NY open`} tone={dayPnl} />
         <Stat label="Realized" value={signedMoney(paper?.realizedPnl ?? 0)} hint={`Fees ${money(paper?.feesPaid ?? 0)}`} tone={paper?.realizedPnl ?? 0} />
         <Stat
           label="Open risk"
@@ -171,6 +188,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           hint={`${state.positions.length}/${state.config.strategy.maxPositions} slots · max ${state.config.strategy.maxLeverage}x`}
         />
       </div>
+
+      <LevelsBoard snapshot={snap} compact onChange={setSnap} />
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>
@@ -251,12 +270,12 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         <Card>
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
-            <CardDescription>Stops and targets from ATR at entry</CardDescription>
+            <CardDescription>Stop beyond the pullback extreme; target is R-multiple or the next level</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {state.positions.length === 0 ? (
               <p className="px-4 py-8 text-sm text-muted-foreground">
-                Flat. The bot waits for a closed-bar EMA crossover on {state.config.coins.join(", ")}.
+                Flat. Waiting for a 5m break → pullback → engulfing on {state.config.coins.join(", ")}.
               </p>
             ) : (
               <Table>
@@ -294,7 +313,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         <Card>
           <CardHeader className="border-b">
             <CardTitle>Last signals</CardTitle>
-            <CardDescription>Evaluated on the last closed {state.config.interval} bar</CardDescription>
+            <CardDescription>5-minute New York session, last closed bar</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {state.lastSignals.length === 0 ? (
@@ -305,7 +324,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                   <TableRow>
                     <TableHead>Coin</TableHead>
                     <TableHead>Action</TableHead>
-                    <TableHead>Fast / Slow</TableHead>
+                    <TableHead>Level</TableHead>
                     <TableHead>Note</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -315,7 +334,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                       <TableCell className="font-medium">{s.coin}</TableCell>
                       <TableCell className="uppercase">{s.action}</TableCell>
                       <TableCell className="font-mono text-xs">
-                        {s.fastEma ? s.fastEma.toFixed(2) : "—"} / {s.slowEma ? s.slowEma.toFixed(2) : "—"}
+                        {s.levelPrice ? formatPx(s.levelPrice) : "—"}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-muted-foreground">{s.reason}</TableCell>
                     </TableRow>

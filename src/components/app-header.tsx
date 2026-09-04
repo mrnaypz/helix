@@ -6,7 +6,8 @@ import { cn } from "cn";
 
 const links = [
   { href: "/", label: "Desk" },
-  { href: "/strategy", label: "Strategy" },
+  { href: "/levels", label: "Levels" },
+  { href: "/strategy", label: "Rules" },
   { href: "/runbook", label: "Runbook" },
 ];
 

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Helix — Hyperliquid desk",
-  description: "Paper and live execution desk for a Hyperliquid trend strategy.",
+  description: "New York session price-action desk for Hyperliquid. Chart levels, trade the 5-minute break-pullback-engulfing.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

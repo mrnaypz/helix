@@ -1,33 +1,41 @@
 import type { BotConfig, BotState, PaperAccount, StrategyConfig } from "./types";
+import { zonedParts } from "../strategy/session";
 
 export const DEFAULT_STRATEGY: StrategyConfig = {
-  fastEma: 9,
-  slowEma: 21,
   atrPeriod: 14,
-  atrStopMultiplier: 1.8,
-  atrTakeMultiplier: 3.2,
+  atrStopMultiplier: 1.5,
+  atrTakeMultiplier: 2.5,
   riskPctPerTrade: 1,
   maxLeverage: 3,
   maxPositions: 2,
   dailyLossLimitPct: 3,
-  cooldownMinutes: 45,
-  trendFilter: true,
+  cooldownMinutes: 30,
   allowShort: true,
   slippageBps: 4,
   takerFeeBps: 3.5,
+  sessionTimeZone: "America/New_York",
+  sessionStartMinutes: 9 * 60 + 30,
+  sessionEndMinutes: 16 * 60,
+  flattenAtSessionEnd: true,
+  retestToleranceBps: 12,
+  retestAtrFrac: 0.15,
+  maxBarsAfterBreak: 18,
+  rewardRisk: 2,
+  stopBufferAtr: 0.1,
 };
 
 export const DEFAULT_CONFIG: BotConfig = {
   mode: "paper",
   network: "mainnet",
   coins: ["BTC", "ETH", "SOL"],
-  interval: "15m",
-  tickMs: 15_000,
+  interval: "5m",
+  tickMs: 10_000,
   startingEquity: 10_000,
   strategy: DEFAULT_STRATEGY,
 };
 
 export function createPaperAccount(startingEquity: number, now = Date.now()): PaperAccount {
+  const day = zonedParts(now, DEFAULT_STRATEGY.sessionTimeZone);
   return {
     cash: startingEquity,
     equity: startingEquity,
@@ -35,7 +43,8 @@ export function createPaperAccount(startingEquity: number, now = Date.now()): Pa
     realizedPnl: 0,
     unrealizedPnl: 0,
     dayStartEquity: startingEquity,
-    dayStartTs: utcDayStart(now),
+    dayStartTs: now,
+    dayKey: day.dateKey,
     feesPaid: 0,
   };
 }
@@ -58,6 +67,9 @@ export function createInitialState(config: BotConfig = DEFAULT_CONFIG): BotState
     lastSignals: [],
     lastBarProcessed: {},
     cooldownUntil: {},
+    levels: [],
+    setups: [],
+    lastSessionFlattenDate: null,
     lastTickAt: null,
     lastError: null,
     ticks: 0,

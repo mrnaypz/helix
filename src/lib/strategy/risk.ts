@@ -5,9 +5,10 @@ export function sizeFromRisk(args: {
   price: number;
   atr: number;
   config: BotConfig;
+  stopDistance?: number;
 }): { size: number; stopDistance: number; notional: number } {
   const { equity, price, atr, config } = args;
-  const stopDistance = atr * config.strategy.atrStopMultiplier;
+  const stopDistance = args.stopDistance && args.stopDistance > 0 ? args.stopDistance : atr * config.strategy.atrStopMultiplier;
   if (stopDistance <= 0 || price <= 0) {
     return { size: 0, stopDistance, notional: 0 };
   }

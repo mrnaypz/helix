@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { BotConfig, StrategyConfig } from "@/lib/bot/types";
-
-const INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"] as const;
+import type { BotConfig, PublicBotSnapshot, StrategyConfig } from "@/lib/bot/types";
+import { formatClock, parseClock } from "@/lib/strategy/session";
 
 export function StrategyForm({ initial }: { initial: BotConfig }) {
   const [config, setConfig] = useState<BotConfig>(initial);
@@ -53,34 +52,14 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Universe and cadence</CardTitle>
+          <CardTitle>Universe</CardTitle>
           <CardDescription>
-            Signals fire only on a newly closed candle. Stops and take-profits are checked every tick against the live mid.
+            5-minute Hyperliquid perps. Signals only fire on a newly closed New York session candle.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Coins" hint="Comma-separated Hyperliquid perp names">
             <Input value={coins} onChange={(e) => setCoins(e.target.value)} />
-          </Field>
-          <Field label="Candle interval">
-            <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-              value={config.interval}
-              onChange={(e) => setConfig({ ...config, interval: e.target.value as BotConfig["interval"] })}
-            >
-              {INTERVALS.map((i) => (
-                <option key={i} value={i}>
-                  {i}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Tick interval (ms)" hint="How often the desk polls Hyperliquid">
-            <Input
-              type="number"
-              value={config.tickMs}
-              onChange={(e) => setConfig({ ...config, tickMs: Number(e.target.value) })}
-            />
           </Field>
           <Field label="Starting paper equity">
             <Input
@@ -99,7 +78,7 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
               <option value="live">Live Hyperliquid</option>
             </select>
           </Field>
-          <Field label="Market data network" hint="Paper uses this for prices. Live follows HL_NETWORK.">
+          <Field label="Market data network">
             <select
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
               value={config.network}
@@ -114,29 +93,38 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>EMA trend rules</CardTitle>
+          <CardTitle>New York session</CardTitle>
           <CardDescription>
-            Long when the fast EMA crosses above the slow EMA. Short on the opposite cross. Optional trend filter
-            requires price to sit on the correct side of the slow EMA.
+            You chart levels in the morning. The bot does not look for entries until this window. Default is the cash
+            open through the cash close, America/New_York.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Num label="Fast EMA" value={s.fastEma} onChange={(v) => setS({ fastEma: v })} />
-          <Num label="Slow EMA" value={s.slowEma} onChange={(v) => setS({ slowEma: v })} />
-          <Num label="ATR period" value={s.atrPeriod} onChange={(v) => setS({ atrPeriod: v })} />
-          <Num label="Stop ATR multiple" value={s.atrStopMultiplier} step="0.1" onChange={(v) => setS({ atrStopMultiplier: v })} />
-          <Num label="Take ATR multiple" value={s.atrTakeMultiplier} step="0.1" onChange={(v) => setS({ atrTakeMultiplier: v })} />
+          <Field label="Session start (ET)">
+            <Input
+              type="time"
+              value={formatClock(s.sessionStartMinutes)}
+              onChange={(e) => setS({ sessionStartMinutes: parseClock(e.target.value) })}
+            />
+          </Field>
+          <Field label="Session end (ET)">
+            <Input
+              type="time"
+              value={formatClock(s.sessionEndMinutes)}
+              onChange={(e) => setS({ sessionEndMinutes: parseClock(e.target.value) })}
+            />
+          </Field>
           <div className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2">
             <div>
-              <Label>Trend filter</Label>
-              <p className="text-xs text-muted-foreground">Price vs slow EMA</p>
+              <Label>Flatten at the close</Label>
+              <p className="text-xs text-muted-foreground">Day-trade: exit everything at session end</p>
             </div>
-            <Switch checked={s.trendFilter} onCheckedChange={(v) => setS({ trendFilter: v })} />
+            <Switch checked={s.flattenAtSessionEnd} onCheckedChange={(v) => setS({ flattenAtSessionEnd: v })} />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2">
             <div>
               <Label>Allow shorts</Label>
-              <p className="text-xs text-muted-foreground">Otherwise long-only</p>
+              <p className="text-xs text-muted-foreground">Support breaks + bearish engulfing</p>
             </div>
             <Switch checked={s.allowShort} onCheckedChange={(v) => setS({ allowShort: v })} />
           </div>
@@ -145,9 +133,28 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Price-action rules</CardTitle>
+          <CardDescription>
+            Break of a charted level, pullback into that level, then a closed 5m engulfing candle in the breakout
+            direction. Stop sits beyond the pullback extreme; target is a reward:risk multiple, or the next level if
+            it is closer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Num label="Retest zone (bps)" value={s.retestToleranceBps} step="1" onChange={(v) => setS({ retestToleranceBps: v })} />
+          <Num label="Retest zone (ATR frac)" value={s.retestAtrFrac} step="0.05" onChange={(v) => setS({ retestAtrFrac: v })} />
+          <Num label="Max 5m bars after break" value={s.maxBarsAfterBreak} onChange={(v) => setS({ maxBarsAfterBreak: v })} />
+          <Num label="Reward : risk" value={s.rewardRisk} step="0.1" onChange={(v) => setS({ rewardRisk: v })} />
+          <Num label="Stop buffer (ATR)" value={s.stopBufferAtr} step="0.05" onChange={(v) => setS({ stopBufferAtr: v })} />
+          <Num label="ATR period" value={s.atrPeriod} onChange={(v) => setS({ atrPeriod: v })} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Risk</CardTitle>
           <CardDescription>
-            Size is risk-percent / ATR stop distance, then capped by max leverage. A UTC daily loss halt blocks new entries.
+            Size is risk-percent divided by stop distance, then capped by max leverage. Daily loss uses the New York date.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 43187",
     "lint": "eslint",
-    "test": "node --import tsx --test src/lib/strategy/indicators.test.ts",
+    "test": "node --import tsx --test src/lib/strategy/*.test.ts",
     "bot": "tsx src/bot/cli.ts"
   },
   "dependencies": {

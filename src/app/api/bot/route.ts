@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getEngine } from "@/lib/bot/runtime";
-import type { BotConfig } from "@/lib/bot/types";
+import type { BotConfig, LevelKind } from "@/lib/bot/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,6 +15,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     action?: string;
     config?: Partial<BotConfig>;
+    level?: { coin: string; kind: LevelKind; price: number; note?: string };
+    id?: string;
   };
 
   try {
@@ -36,6 +38,18 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: "Missing config" }, { status: 400 });
         }
         return NextResponse.json(await engine.applyConfig(body.config));
+      case "addLevel":
+        if (!body.level) {
+          return NextResponse.json({ error: "Missing level" }, { status: 400 });
+        }
+        return NextResponse.json(await engine.addLevel(body.level));
+      case "removeLevel":
+        if (!body.id) {
+          return NextResponse.json({ error: "Missing level id" }, { status: 400 });
+        }
+        return NextResponse.json(await engine.removeLevel(body.id));
+      case "clearLevels":
+        return NextResponse.json(await engine.clearLevels());
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }

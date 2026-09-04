@@ -15,6 +15,8 @@ export type Network = "mainnet" | "testnet";
 export type ExecutionMode = "paper" | "live";
 export type Side = "long" | "short";
 export type BotStatus = "stopped" | "running" | "paused" | "halted";
+export type LevelKind = "resistance" | "support";
+export type SetupPhase = "watching" | "broken" | "retested" | "filled" | "failed";
 
 export type Candle = {
   t: number;
@@ -30,8 +32,6 @@ export type Candle = {
 };
 
 export type StrategyConfig = {
-  fastEma: number;
-  slowEma: number;
   atrPeriod: number;
   atrStopMultiplier: number;
   atrTakeMultiplier: number;
@@ -40,10 +40,18 @@ export type StrategyConfig = {
   maxPositions: number;
   dailyLossLimitPct: number;
   cooldownMinutes: number;
-  trendFilter: boolean;
   allowShort: boolean;
   slippageBps: number;
   takerFeeBps: number;
+  sessionTimeZone: string;
+  sessionStartMinutes: number;
+  sessionEndMinutes: number;
+  flattenAtSessionEnd: boolean;
+  retestToleranceBps: number;
+  retestAtrFrac: number;
+  maxBarsAfterBreak: number;
+  rewardRisk: number;
+  stopBufferAtr: number;
 };
 
 export type BotConfig = {
@@ -54,6 +62,27 @@ export type BotConfig = {
   tickMs: number;
   startingEquity: number;
   strategy: StrategyConfig;
+};
+
+export type ChartLevel = {
+  id: string;
+  coin: string;
+  kind: LevelKind;
+  price: number;
+  note: string;
+  createdAt: number;
+  sessionDate: string;
+};
+
+export type LevelSetup = {
+  levelId: string;
+  coin: string;
+  kind: LevelKind;
+  price: number;
+  phase: SetupPhase;
+  detail: string;
+  brokeAt: number | null;
+  retestExtreme: number | null;
 };
 
 export type Position = {
@@ -97,11 +126,13 @@ export type Signal = {
   coin: string;
   action: "long" | "short" | "flat" | "hold";
   reason: string;
-  fastEma: number;
-  slowEma: number;
   atr: number;
   close: number;
   barTime: number;
+  stopPrice?: number;
+  takePrice?: number;
+  levelPrice?: number;
+  phase?: SetupPhase;
 };
 
 export type MarketSnapshot = {
@@ -131,6 +162,7 @@ export type PaperAccount = {
   unrealizedPnl: number;
   dayStartEquity: number;
   dayStartTs: number;
+  dayKey: string;
   feesPaid: number;
 };
 
@@ -140,6 +172,16 @@ export type LiveReadiness = {
   liveConfirm: boolean;
   network: Network;
   accountAddress: string | null;
+};
+
+export type SessionSnapshot = {
+  inSession: boolean;
+  weekend: boolean;
+  dateKey: string;
+  clock: string;
+  label: string;
+  startLabel: string;
+  endLabel: string;
 };
 
 export type BotState = {
@@ -154,6 +196,9 @@ export type BotState = {
   lastSignals: Signal[];
   lastBarProcessed: Record<string, number>;
   cooldownUntil: Record<string, number>;
+  levels: ChartLevel[];
+  setups: LevelSetup[];
+  lastSessionFlattenDate: string | null;
   lastTickAt: number | null;
   lastError: string | null;
   ticks: number;
@@ -163,5 +208,6 @@ export type PublicBotSnapshot = {
   state: BotState;
   markets: MarketSnapshot[];
   live: LiveReadiness;
+  session: SessionSnapshot;
   nextTickInMs: number | null;
 };
