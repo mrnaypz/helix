@@ -32,6 +32,30 @@ export function bearishEngulfing(prev: Candle, curr: Candle): boolean {
   return bodyHigh(curr) >= bodyHigh(prev) && curr.c < prev.l;
 }
 
+export function postBreakRange(
+  candles: Candle[],
+  breakIndex: number,
+  endExclusive: number,
+): { high: number; low: number } | null {
+  if (breakIndex < 0 || endExclusive <= breakIndex) return null;
+  let high = -Infinity;
+  let low = Infinity;
+  for (let j = breakIndex; j < endExclusive; j++) {
+    high = Math.max(high, candles[j].h);
+    low = Math.min(low, candles[j].l);
+  }
+  if (!Number.isFinite(high) || !Number.isFinite(low)) return null;
+  return { high, low };
+}
+
+export function bullishRangeBreak(curr: Candle, rangeHigh: number): boolean {
+  return isBullish(curr) && curr.c > rangeHigh;
+}
+
+export function bearishRangeBreak(curr: Candle, rangeLow: number): boolean {
+  return isBearish(curr) && curr.c < rangeLow;
+}
+
 function replayLevel(args: {
   level: ChartLevel;
   candles: Candle[];
@@ -107,19 +131,38 @@ function replayLevel(args: {
       setup.detail = `Consolidating ${pauseBars}/${minPause} after the break — does not have to tag ${level.price}`;
       if (pauseBars >= minPause) {
         phase = "consolidated";
-        setup.detail = `Consolidated — waiting for a ${level.kind === "resistance" ? "bullish" : "bearish"} engulfing trigger`;
+        setup.detail = config.allowRangeBreakEntry
+          ? `Consolidated — waiting for engulfing or a close beyond the post-break ${level.kind === "resistance" ? "high" : "low"}`
+          : `Consolidated — waiting for a ${level.kind === "resistance" ? "bullish" : "bearish"} engulfing trigger`;
       }
       continue;
     }
 
     if (phase === "consolidated" || phase === "retested") {
-      const longEntry = level.kind === "resistance" && bullishEngulfing(prev, curr);
-      const shortEntry = level.kind === "support" && bearishEngulfing(prev, curr);
+      const range = postBreakRange(candles, breakIndex, i);
+      const longEngulf = level.kind === "resistance" && bullishEngulfing(prev, curr);
+      const shortEngulf = level.kind === "support" && bearishEngulfing(prev, curr);
+      const longRange =
+        Boolean(config.allowRangeBreakEntry) &&
+        level.kind === "resistance" &&
+        range != null &&
+        bullishRangeBreak(curr, range.high);
+      const shortRange =
+        Boolean(config.allowRangeBreakEntry) &&
+        level.kind === "support" &&
+        range != null &&
+        bearishRangeBreak(curr, range.low);
+      const longEntry = longEngulf || longRange;
+      const shortEntry = shortEngulf || shortRange;
       if (longEntry || shortEntry) {
         phase = "filled";
-        setup.detail = longEntry
+        setup.detail = longEngulf
           ? "Bullish engulfing after consolidation"
-          : "Bearish engulfing after consolidation";
+          : shortEngulf
+            ? "Bearish engulfing after consolidation"
+            : longRange
+              ? "Range break of the post-break high"
+              : "Range break of the post-break low";
         setup.phase = phase;
         setup.retestExtreme = swing;
         if (!last) {

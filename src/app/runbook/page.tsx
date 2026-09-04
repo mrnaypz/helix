@@ -23,7 +23,7 @@ export default function RunbookPage() {
             <ol className="list-decimal space-y-2 pl-5 text-foreground/90">
               <li>You plot support and resistance from your morning chart (previous day high/low, overnight range, equal highs, etc.).</li>
               <li>Start the engine when you want it watching. Entries are blocked until 09:30 ET (editable).</li>
-              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then a closed engulfing candle that finishes beyond the previous wick.</li>
+              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then either a closed engulfing candle that finishes beyond the previous wick, or a continuation close beyond the high/low of the breakout plus that consolidation.</li>
               <li>If a 5m candle closes back through the level, that level is dead. No trade.</li>
               <li>One market at a time, always 10x on BTC, ETH, SOL, and HYPE. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is −0.5% of price and target is +1% (5% / 10% ROE at 10x). After +0.55% the stop moves to break-even. After +0.8% it waits five 5m candles and flattens if the target is still open.</li>
               <li>At 16:00 ET it flattens (optional). Kill switch is always available.</li>
@@ -68,6 +68,7 @@ export default function RunbookPage() {
               <li>A 5m candle closes above your resistance.</li>
               <li>At least three later 5m candles stay above the level. They do not have to wick into it.</li>
               <li>A later 5m candle is bullish and fully engulfs the previous candle&apos;s body, and its close is above the previous wick (not only the body). That close is the entry.</li>
+              <li>Or a later 5m candle is bullish and closes above the highest wick of the breakout candle and the consolidation after it, even if it does not engulf the previous bar. That is also the entry.</li>
               <li>If any 5m candle closes back below the resistance before entry, the level is invalidated. The bot will not trade it.</li>
             </ol>
             <p className="pt-2 text-foreground/90">Short is the mirror off support, only if shorts are enabled.</p>

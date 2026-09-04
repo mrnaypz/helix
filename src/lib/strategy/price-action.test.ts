@@ -108,6 +108,47 @@ describe("price action sequence", () => {
     assert.equal(signal.action, "long");
   });
 
+  it("goes long on a range break that does not engulf the previous candle", () => {
+    const candles: Candle[] = [
+      sessionBar(0, 98.5, 99.2, 98.2, 99.0),
+      sessionBar(5, 99.0, 101.4, 98.9, 101.1), // break, high 101.4
+      sessionBar(10, 101.0, 101.6, 100.6, 101.2), // pause 1, high 101.6
+      sessionBar(15, 101.1, 101.4, 100.7, 100.9),
+      sessionBar(20, 101.2, 101.5, 101.0, 101.4), // pause 3, bullish — next cannot engulf it
+      sessionBar(25, 101.3, 102.8, 101.2, 102.5), // close above 101.6, does not engulf
+    ];
+    const { signal, setups } = evaluatePriceAction({
+      coin: "BTC",
+      candles,
+      levels: [resistance()],
+      config: DEFAULT_STRATEGY,
+      now: OPEN + 30 * 60_000,
+    });
+    assert.equal(setups[0]?.phase, "filled");
+    assert.equal(signal.action, "long");
+    assert.match(signal.reason, /Range break/);
+  });
+
+  it("does not treat a range break as an entry when the rule is off", () => {
+    const candles: Candle[] = [
+      sessionBar(0, 98.5, 99.2, 98.2, 99.0),
+      sessionBar(5, 99.0, 101.4, 98.9, 101.1),
+      sessionBar(10, 101.0, 101.6, 100.6, 101.2),
+      sessionBar(15, 101.1, 101.4, 100.7, 100.9),
+      sessionBar(20, 101.2, 101.5, 101.0, 101.4),
+      sessionBar(25, 101.3, 102.8, 101.2, 102.5),
+    ];
+    const { signal, setups } = evaluatePriceAction({
+      coin: "BTC",
+      candles,
+      levels: [resistance()],
+      config: { ...DEFAULT_STRATEGY, allowRangeBreakEntry: false },
+      now: OPEN + 30 * 60_000,
+    });
+    assert.notEqual(signal.action, "long");
+    assert.equal(setups[0]?.phase, "consolidated");
+  });
+
   it("does not enter on the first bars after the break", () => {
     const candles: Candle[] = [
       sessionBar(0, 98.5, 99.2, 98.2, 99.0),

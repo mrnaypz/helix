@@ -23,6 +23,7 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   retestAtrFrac: 0.15,
   maxBarsAfterBreak: 18,
   minConsolidationBars: 3,
+  allowRangeBreakEntry: true,
   rewardRisk: 2,
   stopBufferAtr: 0.1,
   stopLossPricePct: 0.5,

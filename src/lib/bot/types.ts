@@ -51,6 +51,7 @@ export type StrategyConfig = {
   retestAtrFrac: number;
   maxBarsAfterBreak: number;
   minConsolidationBars: number;
+  allowRangeBreakEntry: boolean;
   rewardRisk: number;
   stopBufferAtr: number;
   stopLossPricePct: number;

@@ -136,13 +136,26 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
           <CardTitle>Price-action rules</CardTitle>
           <CardDescription>
             Close through a charted level, then at least a few 5m bars of consolidation (no need to tag the level),
-            then a closed engulfing candle whose close clears the previous wick, not only the body. A close back
-            through the level kills it. No trade until you chart a new price.
+            then either a closed engulfing candle whose close clears the previous wick, or a bullish/bearish close
+            beyond the high/low of the breakout plus that consolidation. A close back through the level kills it.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Num label="Consolidation bars after break" value={s.minConsolidationBars} onChange={(v) => setS({ minConsolidationBars: v })} />
           <Num label="Max 5m bars after break" value={s.maxBarsAfterBreak} onChange={(v) => setS({ maxBarsAfterBreak: v })} />
+          <div className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 sm:col-span-2">
+            <div>
+              <Label>Also enter on range break</Label>
+              <p className="text-xs text-muted-foreground">
+                Close beyond the wick of the breakout candle and the consolidation after it, even if that bar does not
+                engulf the previous candle
+              </p>
+            </div>
+            <Switch
+              checked={s.allowRangeBreakEntry}
+              onCheckedChange={(v) => setS({ allowRangeBreakEntry: v })}
+            />
+          </div>
         </CardContent>
       </Card>
 

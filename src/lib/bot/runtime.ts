@@ -12,6 +12,7 @@ export async function getEngine(): Promise<BotEngine> {
     (typeof globalForBot.helixEngine.addLevel !== "function" ||
       typeof globalForBot.helixEngine.state.config.strategy.stopLossPricePct !== "number" ||
       typeof globalForBot.helixEngine.state.config.strategy.breakEvenPricePct !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.allowRangeBreakEntry !== "boolean" ||
       globalForBot.helixEngine.state.config.strategy.maxLeverage !== TRADE_LEVERAGE ||
       !globalForBot.helixEngine.state.config.coins.includes("HYPE"))
   ) {

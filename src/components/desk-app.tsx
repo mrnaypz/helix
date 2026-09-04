@@ -115,8 +115,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Execution desk</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Chart your levels in the morning, then start the engine for the New York session. One asset at a time: the
-            first 5m engulfing close beyond the prior wick wins. Live orders stay locked until you add an agent wallet.
+            Chart your levels in the morning, then start the engine for the New York session. One asset at a time: first
+            5m engulfing or a close beyond the post-break range wins. Live orders stay locked until you add an agent
+            wallet.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -270,8 +271,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardContent className="p-0">
             {state.positions.length === 0 ? (
               <p className="px-4 py-8 text-sm text-muted-foreground">
-                Flat. Waiting for a 5m break, consolidation, then engulfing on {state.config.coins.join(", ")}. First
-                trigger takes the slot.
+                Flat. Waiting for a 5m break, consolidation, then engulfing or a range-break close on{" "}
+                {state.config.coins.join(", ")}. First trigger takes the slot.
               </p>
             ) : (
               <Table>
