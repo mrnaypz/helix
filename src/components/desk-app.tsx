@@ -97,7 +97,14 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
             <Badge className={cn("border capitalize", statusTone(state.status))}>{state.status}</Badge>
             <Badge variant="outline">{state.config.mode === "live" ? "Shadow book" : "Paper"} · {state.config.network}</Badge>
             <Badge variant="outline">{state.config.interval} price action</Badge>
-            <Badge className={cn("border", session.inSession ? "border-emerald-400/30 text-emerald-300" : "border-white/10 text-muted-foreground")}>
+            <Badge
+              variant="outline"
+              className={cn(
+                session.inSession
+                  ? "border-emerald-800/50 bg-emerald-400 text-emerald-950"
+                  : "border-white/10 text-muted-foreground",
+              )}
+            >
               {session.clock} · {session.inSession ? "NY open" : "NY closed"}
             </Badge>
             {state.lastTickAt ? (
