@@ -150,19 +150,21 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
         <CardHeader>
           <CardTitle>Risk</CardTitle>
           <CardDescription>
-            One market at a time. Size is 70% of equity as margin. Stop and target are account-return percents, so at
-            10x a 5% stop is a 0.5% price move and a 10% target is a 1% price move. After 5.5% ROE (0.55% price at
-            10x) the stop moves to break-even. After 8% ROE (0.8% price) a 5-bar clock starts; if the target is still
-            open, the trade is closed.
+            One market at a time, always 10x. Size is 70% of equity as margin. Stop and target are price moves, not
+            account ROE: −0.5% stop and +1% target. At 10x that is 5% / 10% ROE; if leverage were 5x those would be
+            2.5% / 5% ROE because the price stops do not change. After +0.55% the stop moves to break-even. After +0.8%
+            a 5-bar clock starts; if the target is still open, the trade is closed.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Num label="Margin % of account" value={s.marginPct} step="1" onChange={(v) => setS({ marginPct: v })} />
-          <Num label="Max leverage" value={s.maxLeverage} onChange={(v) => setS({ maxLeverage: v })} />
-          <Num label="Stop loss (ROE %)" value={s.stopLossRoePct} step="0.1" onChange={(v) => setS({ stopLossRoePct: v })} />
-          <Num label="Take profit (ROE %)" value={s.takeProfitRoePct} step="0.1" onChange={(v) => setS({ takeProfitRoePct: v })} />
-          <Num label="Break-even after (ROE %)" value={s.breakEvenRoePct} step="0.1" onChange={(v) => setS({ breakEvenRoePct: v })} />
-          <Num label="Give-up after (ROE %)" value={s.giveUpRoePct} step="0.1" onChange={(v) => setS({ giveUpRoePct: v })} />
+          <Field label="Leverage">
+            <p className="flex h-8 items-center text-sm">10x on BTC, ETH, SOL, and HYPE. Not editable.</p>
+          </Field>
+          <Num label="Stop loss (price %)" value={s.stopLossPricePct} step="0.01" onChange={(v) => setS({ stopLossPricePct: v })} />
+          <Num label="Take profit (price %)" value={s.takeProfitPricePct} step="0.01" onChange={(v) => setS({ takeProfitPricePct: v })} />
+          <Num label="Break-even after (price %)" value={s.breakEvenPricePct} step="0.01" onChange={(v) => setS({ breakEvenPricePct: v })} />
+          <Num label="Give-up after (price %)" value={s.giveUpPricePct} step="0.01" onChange={(v) => setS({ giveUpPricePct: v })} />
           <Num label="Give-up wait (5m bars)" value={s.giveUpBars} onChange={(v) => setS({ giveUpBars: v })} />
           <Num label="Daily loss limit %" value={s.dailyLossLimitPct} step="0.1" onChange={(v) => setS({ dailyLossLimitPct: v })} />
           <Num label="Cooldown after stop (min)" value={s.cooldownMinutes} onChange={(v) => setS({ cooldownMinutes: v })} />

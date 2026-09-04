@@ -1,4 +1,4 @@
-import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
+import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY, TRADE_LEVERAGE } from "./defaults";
 import { markToMarket, paperFill } from "./paper";
 import { loadState, migrateCoins, saveState } from "./store";
 import { evaluatePriceAction } from "../strategy/price-action";
@@ -7,12 +7,11 @@ import {
   hitStop,
   hitTake,
   moveStopToBreakEven,
-  priceMovePctFromRoe,
   shouldArmGiveUp,
   shouldGiveUp,
   shouldMoveStopToBreakEven,
   sizeFromMargin,
-  stopTakeFromRoe,
+  stopTakeFromPrice,
 } from "../strategy/risk";
 import { canTradeLive, liveReadiness, placeMarketLike, setLeverage } from "../hyperliquid/exchange";
 import { fetchCandles, fetchMarkets } from "../hyperliquid/info";
@@ -51,6 +50,7 @@ export class BotEngine {
       ...DEFAULT_STRATEGY,
       ...this.state.config.strategy,
       maxPositions: 1,
+      maxLeverage: TRADE_LEVERAGE,
     };
     this.state.config.coins = migrateCoins(this.state.config.coins);
   }
@@ -93,7 +93,7 @@ export class BotEngine {
       ...this.state.config,
       ...patch,
       coins: migrateCoins(patch.coins?.length ? patch.coins : this.state.config.coins),
-      strategy: { ...this.state.config.strategy, ...(patch.strategy ?? {}), maxPositions: 1 },
+      strategy: { ...this.state.config.strategy, ...(patch.strategy ?? {}), maxPositions: 1, maxLeverage: TRADE_LEVERAGE },
     };
     if (next.mode === "live" && !canTradeLive()) {
       throw new Error(
@@ -373,13 +373,13 @@ export class BotEngine {
       const lastBarTime = barTimes.at(-1);
 
       if (hitTake(live, mark)) {
-        await this.closePosition(live.coin, "Take-profit — 10% ROE from entry");
+        await this.closePosition(live.coin, `Take-profit — ${config.strategy.takeProfitPricePct}% from entry`);
         continue;
       }
       if (hitStop(live, mark)) {
         await this.closePosition(
           live.coin,
-          live.breakEvenStop ? "Stop — break-even" : "Stop — 5% ROE from entry",
+          live.breakEvenStop ? "Stop — break-even" : `Stop — ${config.strategy.stopLossPricePct}% from entry`,
         );
         continue;
       }
@@ -389,7 +389,7 @@ export class BotEngine {
         pushEvent(this.state, {
           level: "info",
           coin: live.coin,
-          message: `Stop to break-even on ${live.coin} after ${config.strategy.breakEvenRoePct}% ROE (${priceMovePctFromRoe(config.strategy.breakEvenRoePct, live.leverage)}% price)`,
+          message: `Stop to break-even on ${live.coin} after ${config.strategy.breakEvenPricePct}%`,
         });
       }
 
@@ -398,14 +398,14 @@ export class BotEngine {
         pushEvent(this.state, {
           level: "info",
           coin: live.coin,
-          message: `Armed ${config.strategy.giveUpBars}-bar clock on ${live.coin} after ${config.strategy.giveUpRoePct}% ROE. Flatten if the target is not hit.`,
+          message: `Armed ${config.strategy.giveUpBars}-bar clock on ${live.coin} after ${config.strategy.giveUpPricePct}%. Flatten if the target is not hit.`,
         });
       }
 
       if (shouldGiveUp(live, barTimes, config.strategy)) {
         await this.closePosition(
           live.coin,
-          `Time stop — ${config.strategy.giveUpBars} bars after ${config.strategy.giveUpRoePct}% ROE without target`,
+          `Time stop — ${config.strategy.giveUpBars} bars after ${config.strategy.giveUpPricePct}% without target`,
         );
       }
     }
@@ -487,7 +487,15 @@ export class BotEngine {
 
     const market = this.markets.find((m) => m.coin === signal.coin);
     const mark = market?.midPx || market?.markPx || signal.close;
-    const leverage = Math.min(config.strategy.maxLeverage, market?.maxLeverage ?? config.strategy.maxLeverage);
+    const leverage = TRADE_LEVERAGE;
+    if (config.mode === "live" && market && market.maxLeverage < TRADE_LEVERAGE) {
+      pushEvent(this.state, {
+        level: "warn",
+        coin: signal.coin,
+        message: `Skipped ${signal.coin}: Hyperliquid max is ${market.maxLeverage}x, Helix is fixed at ${TRADE_LEVERAGE}x`,
+      });
+      return;
+    }
     const sized = sizeFromMargin({
       equity: paper.equity,
       price: mark,
@@ -506,7 +514,7 @@ export class BotEngine {
     const slip = mark * (config.strategy.slippageBps / 10_000);
     const side = signal.action === "short" ? "short" : "long";
     const entry = side === "long" ? mark + slip : mark - slip;
-    const { stopPrice, takePrice } = stopTakeFromRoe(side, entry, leverage, config.strategy);
+    const { stopPrice, takePrice } = stopTakeFromPrice(side, entry, config.strategy);
 
     if (config.mode === "live") {
       if (!market) throw new Error(`No market metadata for ${signal.coin}`);

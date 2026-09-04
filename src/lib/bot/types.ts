@@ -53,10 +53,10 @@ export type StrategyConfig = {
   minConsolidationBars: number;
   rewardRisk: number;
   stopBufferAtr: number;
-  stopLossRoePct: number;
-  takeProfitRoePct: number;
-  breakEvenRoePct: number;
-  giveUpRoePct: number;
+  stopLossPricePct: number;
+  takeProfitPricePct: number;
+  breakEvenPricePct: number;
+  giveUpPricePct: number;
   giveUpBars: number;
   marginPct: number;
 };

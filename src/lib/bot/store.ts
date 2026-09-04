@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createInitialState, CORE_COINS, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
+import { createInitialState, CORE_COINS, DEFAULT_CONFIG, DEFAULT_STRATEGY, TRADE_LEVERAGE } from "./defaults";
 import type { BotConfig, BotState, StrategyConfig } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -13,19 +13,32 @@ export function migrateCoins(raw?: string[] | null): string[] {
   return [...CORE_COINS, ...extra];
 }
 
+type LegacyStrategy = Partial<StrategyConfig> & {
+  stopLossRoePct?: number;
+  takeProfitRoePct?: number;
+  breakEvenRoePct?: number;
+  giveUpRoePct?: number;
+};
+
+function priceFromLegacyRoe(price: number | undefined, roe: number | undefined, fallback: number): number {
+  if (typeof price === "number" && Number.isFinite(price)) return price;
+  if (typeof roe === "number" && Number.isFinite(roe)) return roe / TRADE_LEVERAGE;
+  return fallback;
+}
+
 function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConfig {
-  const incoming = raw ?? {};
+  const incoming = (raw ?? {}) as LegacyStrategy;
   const fromEma = !("sessionStartMinutes" in incoming);
-  const missingRoe = !("stopLossRoePct" in incoming);
   return {
     ...DEFAULT_STRATEGY,
     ...incoming,
     maxPositions: 1,
+    maxLeverage: TRADE_LEVERAGE,
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
-    stopLossRoePct: incoming.stopLossRoePct ?? DEFAULT_STRATEGY.stopLossRoePct,
-    takeProfitRoePct: incoming.takeProfitRoePct ?? DEFAULT_STRATEGY.takeProfitRoePct,
-    breakEvenRoePct: incoming.breakEvenRoePct ?? DEFAULT_STRATEGY.breakEvenRoePct,
-    giveUpRoePct: incoming.giveUpRoePct ?? DEFAULT_STRATEGY.giveUpRoePct,
+    stopLossPricePct: priceFromLegacyRoe(incoming.stopLossPricePct, incoming.stopLossRoePct, DEFAULT_STRATEGY.stopLossPricePct),
+    takeProfitPricePct: priceFromLegacyRoe(incoming.takeProfitPricePct, incoming.takeProfitRoePct, DEFAULT_STRATEGY.takeProfitPricePct),
+    breakEvenPricePct: priceFromLegacyRoe(incoming.breakEvenPricePct, incoming.breakEvenRoePct, DEFAULT_STRATEGY.breakEvenPricePct),
+    giveUpPricePct: priceFromLegacyRoe(incoming.giveUpPricePct, incoming.giveUpRoePct, DEFAULT_STRATEGY.giveUpPricePct),
     giveUpBars: incoming.giveUpBars ?? DEFAULT_STRATEGY.giveUpBars,
     marginPct: incoming.marginPct ?? DEFAULT_STRATEGY.marginPct,
     ...(fromEma
@@ -34,7 +47,6 @@ function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConf
           sessionEndMinutes: DEFAULT_STRATEGY.sessionEndMinutes,
         }
       : {}),
-    ...(missingRoe ? { maxLeverage: Math.max(incoming.maxLeverage ?? 0, DEFAULT_STRATEGY.maxLeverage) } : {}),
   };
 }
 

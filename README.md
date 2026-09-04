@@ -8,7 +8,7 @@ Hyperliquid execution desk for a New York session price-action strategy. You cha
 2. Enter them on **Levels** (resistance / support + price, per market).
 3. Start the engine on the **Desk** when you want it armed. It will not take entries before 09:30 America/New_York.
 4. A 5m close back through a level invalidates it. No trade. Chart a new level to re-arm that market — if the engine is already running, that is enough. You do not restart.
-5. One market at a time. First trigger wins. Size is 70% of the account as margin. Stop is 5% ROE and target is 10% ROE (at 10x that is 0.5% / 1% of price). After 0.55% (5.5% ROE at 10x) the stop moves to break-even. After 0.8% (8% ROE) it waits five 5m candles and exits if the target is still open.
+5. One market at a time, always 10x. First trigger wins. Size is 70% of the account as margin. Stop is −0.5% of price and target is +1% (5% / 10% ROE at 10x). After +0.55% the stop moves to break-even. After +0.8% it waits five 5m candles and exits if the target is still open.
 6. It flattens at 16:00 ET by default. Kill switch is on the desk.
 
 Paper mode is the default. No Hyperliquid orders are sent until you add an agent wallet and switch execution to live.

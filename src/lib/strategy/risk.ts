@@ -4,13 +4,22 @@ export function priceMovePctFromRoe(roePct: number, leverage: number): number {
   return roePct / Math.max(leverage, 1);
 }
 
-export function stopTakeFromRoe(side: Side, entry: number, leverage: number, config: StrategyConfig) {
-  const stopPct = priceMovePctFromRoe(config.stopLossRoePct, leverage) / 100;
-  const takePct = priceMovePctFromRoe(config.takeProfitRoePct, leverage) / 100;
+export function roeFromPriceMove(pricePct: number, leverage: number): number {
+  return pricePct * Math.max(leverage, 1);
+}
+
+export function stopTakeFromPrice(side: Side, entry: number, config: StrategyConfig) {
+  const stopPct = config.stopLossPricePct / 100;
+  const takePct = config.takeProfitPricePct / 100;
   if (side === "long") {
     return { stopPrice: entry * (1 - stopPct), takePrice: entry * (1 + takePct) };
   }
   return { stopPrice: entry * (1 + stopPct), takePrice: entry * (1 - takePct) };
+}
+
+/** @deprecated price stops are leverage-independent; kept for call sites that still pass leverage */
+export function stopTakeFromRoe(side: Side, entry: number, _leverage: number, config: StrategyConfig) {
+  return stopTakeFromPrice(side, entry, config);
 }
 
 export function sizeFromMargin(args: {
@@ -43,7 +52,7 @@ export function sizeFromRisk(args: {
     leverage: args.config.strategy.maxLeverage,
     config: args.config,
   });
-  const stopPct = priceMovePctFromRoe(args.config.strategy.stopLossRoePct, args.config.strategy.maxLeverage) / 100;
+  const stopPct = args.config.strategy.stopLossPricePct / 100;
   return {
     size: sized.size,
     stopDistance: args.price * stopPct,
@@ -52,7 +61,7 @@ export function sizeFromRisk(args: {
 }
 
 export function stopTakePrices(side: Side, entry: number, _atr: number, config: BotConfig) {
-  return stopTakeFromRoe(side, entry, config.strategy.maxLeverage, config.strategy);
+  return stopTakeFromPrice(side, entry, config.strategy);
 }
 
 export function hitStop(position: Position, mark: number): boolean {
@@ -75,8 +84,8 @@ export function favorablePriceMovePct(
   return Math.max(0, raw * 100);
 }
 
-function reachedRoeMove(position: Pick<Position, "side" | "entryPrice" | "leverage">, mark: number, roePct: number): boolean {
-  const need = (priceMovePctFromRoe(roePct, position.leverage) / 100) * position.entryPrice;
+function reachedPriceMove(position: Pick<Position, "side" | "entryPrice">, mark: number, pricePct: number): boolean {
+  const need = (pricePct / 100) * position.entryPrice;
   const move =
     position.side === "long" ? mark - position.entryPrice : position.entryPrice - mark;
   return move + 1e-12 >= need;
@@ -84,7 +93,7 @@ function reachedRoeMove(position: Pick<Position, "side" | "entryPrice" | "levera
 
 export function shouldMoveStopToBreakEven(position: Position, mark: number, config: StrategyConfig): boolean {
   if (position.breakEvenStop) return false;
-  return reachedRoeMove(position, mark, config.breakEvenRoePct);
+  return reachedPriceMove(position, mark, config.breakEvenPricePct);
 }
 
 export function moveStopToBreakEven(position: Position): void {
@@ -94,7 +103,7 @@ export function moveStopToBreakEven(position: Position): void {
 
 export function shouldArmGiveUp(position: Position, mark: number, config: StrategyConfig): boolean {
   if (position.giveUpArmedBarTime != null) return false;
-  return reachedRoeMove(position, mark, config.giveUpRoePct);
+  return reachedPriceMove(position, mark, config.giveUpPricePct);
 }
 
 export function closedBarsAfter(barTimes: number[], armedBarTime: number): number {

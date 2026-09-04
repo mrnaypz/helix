@@ -170,7 +170,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         <Stat
           label="Open risk"
           value={String(state.positions.length)}
-          hint={`${state.positions.length}/${state.config.strategy.maxPositions} slots · max ${state.config.strategy.maxLeverage}x`}
+          hint={`${state.positions.length}/${state.config.strategy.maxPositions} slots · 10x`}
         />
       </div>
 
@@ -256,8 +256,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
             <CardDescription>
-              5% ROE stop, 10% ROE target. Stop to break-even after 5.5% ROE. After 8% ROE, five more 5m bars without
-              the target flattens the trade.
+              −0.5% stop, +1% target (5% / 10% ROE at 10x). Break-even after +0.55%. After +0.8%, five more 5m bars
+              without the target flattens the trade. Always 10x.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">

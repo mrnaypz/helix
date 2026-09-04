@@ -1,12 +1,14 @@
 import type { BotConfig, BotState, PaperAccount, StrategyConfig } from "./types";
 import { zonedParts } from "../strategy/session";
 
+export const TRADE_LEVERAGE = 10;
+
 export const DEFAULT_STRATEGY: StrategyConfig = {
   atrPeriod: 14,
   atrStopMultiplier: 1.5,
   atrTakeMultiplier: 2.5,
   riskPctPerTrade: 1,
-  maxLeverage: 10,
+  maxLeverage: TRADE_LEVERAGE,
   maxPositions: 1,
   dailyLossLimitPct: 3,
   cooldownMinutes: 30,
@@ -23,10 +25,10 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   minConsolidationBars: 3,
   rewardRisk: 2,
   stopBufferAtr: 0.1,
-  stopLossRoePct: 5,
-  takeProfitRoePct: 10,
-  breakEvenRoePct: 5.5,
-  giveUpRoePct: 8,
+  stopLossPricePct: 0.5,
+  takeProfitPricePct: 1,
+  breakEvenPricePct: 0.55,
+  giveUpPricePct: 0.8,
   giveUpBars: 5,
   marginPct: 70,
 };

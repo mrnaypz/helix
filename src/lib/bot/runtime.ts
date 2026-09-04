@@ -1,4 +1,5 @@
 import { BotEngine } from "./engine";
+import { TRADE_LEVERAGE } from "./defaults";
 
 const globalForBot = globalThis as unknown as {
   helixEngine?: BotEngine;
@@ -9,8 +10,9 @@ export async function getEngine(): Promise<BotEngine> {
   if (
     globalForBot.helixEngine &&
     (typeof globalForBot.helixEngine.addLevel !== "function" ||
-      typeof globalForBot.helixEngine.state.config.strategy.stopLossRoePct !== "number" ||
-      typeof globalForBot.helixEngine.state.config.strategy.breakEvenRoePct !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.stopLossPricePct !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.breakEvenPricePct !== "number" ||
+      globalForBot.helixEngine.state.config.strategy.maxLeverage !== TRADE_LEVERAGE ||
       !globalForBot.helixEngine.state.config.coins.includes("HYPE"))
   ) {
     globalForBot.helixEngine = undefined;

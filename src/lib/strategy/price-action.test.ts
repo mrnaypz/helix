@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { DEFAULT_CONFIG, DEFAULT_STRATEGY, createPaperAccount } from "../bot/defaults";
 import type { Candle, ChartLevel, Position } from "../bot/types";
 import { paperFill, markToMarket } from "../bot/paper";
-import { priceMovePctFromRoe, sizeFromMargin, sizeFromRisk, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven } from "./risk";
+import { priceMovePctFromRoe, roeFromPriceMove, sizeFromMargin, sizeFromRisk, stopTakeFromPrice, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven } from "./risk";
 import { formatClock, parseClock, sessionStatus } from "./session";
 import { bearishEngulfing, bullishEngulfing, evaluatePriceAction } from "./price-action";
 
@@ -193,12 +193,17 @@ describe("risk sizing", () => {
     assert.equal(sized.size, 140);
   });
 
-  it("places a 5% ROE stop as 0.5% of price at 10x", () => {
+  it("places a 0.5% price stop and 1% target regardless of leverage", () => {
     assert.equal(priceMovePctFromRoe(5, 10), 0.5);
-    assert.equal(priceMovePctFromRoe(10, 10), 1);
-    const levels = stopTakeFromRoe("long", 100, 10, DEFAULT_STRATEGY);
-    assert.equal(levels.stopPrice, 99.5);
-    assert.equal(levels.takePrice, 101);
+    assert.equal(roeFromPriceMove(0.5, 10), 5);
+    assert.equal(roeFromPriceMove(0.5, 5), 2.5);
+    assert.equal(roeFromPriceMove(1, 5), 5);
+    const atTen = stopTakeFromPrice("long", 100, DEFAULT_STRATEGY);
+    const atFive = stopTakeFromRoe("long", 100, 5, DEFAULT_STRATEGY);
+    assert.equal(atTen.stopPrice, 99.5);
+    assert.equal(atTen.takePrice, 101);
+    assert.equal(atFive.stopPrice, 99.5);
+    assert.equal(atFive.takePrice, 101);
   });
 
   it("sizeFromRisk follows the margin model", () => {
@@ -233,10 +238,10 @@ describe("trade management", () => {
     };
   }
 
-  it("moves the stop to break-even after 0.55% (5.5% ROE at 10x)", () => {
-    const before = longAt(100, 100.54);
+  it("moves the stop to break-even after 0.55% even if leverage is 5x", () => {
+    const before = longAt(100, 100.54, { leverage: 5 });
     assert.equal(shouldMoveStopToBreakEven(before, 100.54, DEFAULT_STRATEGY), false);
-    const at = longAt(100, 100.55);
+    const at = longAt(100, 100.55, { leverage: 5 });
     assert.ok(Math.abs(favorablePriceMovePct(at, 100.55) - 0.55) < 1e-9);
     assert.equal(shouldMoveStopToBreakEven(at, 100.55, DEFAULT_STRATEGY), true);
     moveStopToBreakEven(at);
