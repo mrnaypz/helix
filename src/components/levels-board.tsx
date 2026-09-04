@@ -3,15 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DarkSelect } from "@/components/dark-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -23,8 +17,6 @@ import {
 import type { LevelKind, PublicBotSnapshot } from "@/lib/bot/types";
 import { formatPx } from "@/lib/format";
 import { cn } from "cn";
-
-const KINDS: LevelKind[] = ["resistance", "support"];
 
 function phaseTone(phase?: string) {
   if (phase === "retested") return "text-amber-300";
@@ -92,49 +84,22 @@ export function LevelsBoard({
         <div className={cn("grid gap-3", compact ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-5")}>
           <div className="space-y-1.5">
             <Label>Market</Label>
-            <Select value={coin} onValueChange={(value) => value && setCoin(value)}>
-              <SelectTrigger className="w-full bg-[#12141a] text-foreground hover:bg-[#171a22]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                alignItemWithTrigger={false}
-                align="start"
-                className="bg-[#12141a] text-foreground ring-white/15"
-              >
-                {snapshot.state.config.coins.map((c) => (
-                  <SelectItem
-                    key={c}
-                    value={c}
-                    className="text-foreground focus:bg-white/10 focus:text-foreground"
-                  >
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <DarkSelect
+              value={coin}
+              onChange={setCoin}
+              options={snapshot.state.config.coins.map((c) => ({ value: c, label: c }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <Select value={kind} onValueChange={(value) => value && setKind(value as LevelKind)}>
-              <SelectTrigger className="w-full bg-[#12141a] text-foreground hover:bg-[#171a22]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                alignItemWithTrigger={false}
-                align="start"
-                className="bg-[#12141a] text-foreground ring-white/15"
-              >
-                {KINDS.map((k) => (
-                  <SelectItem
-                    key={k}
-                    value={k}
-                    className="text-foreground capitalize focus:bg-white/10 focus:text-foreground"
-                  >
-                    {k}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <DarkSelect
+              value={kind}
+              onChange={(value) => setKind(value as LevelKind)}
+              options={[
+                { value: "resistance", label: "Resistance" },
+                { value: "support", label: "Support" },
+              ]}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Price</Label>

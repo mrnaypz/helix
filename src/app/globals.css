@@ -127,8 +127,9 @@
       radial-gradient(1200px 500px at 10% -10%, oklch(0.45 0.12 155 / 0.12), transparent 55%),
       radial-gradient(900px 400px at 100% 0%, oklch(0.4 0.08 250 / 0.18), transparent 50%);
   }
-  html {
+html {
     @apply font-sans;
+    color-scheme: dark;
   }
   .font-mono {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
