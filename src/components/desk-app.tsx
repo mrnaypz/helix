@@ -10,9 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { killEngine, pauseEngine, resetPaper, startEngine, stopEngine } from "@/app/bot-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Table,
   TableBody,
@@ -26,17 +27,6 @@ import { clsxPositive, compactNumber, formatPx, money, pct, relativeTime, signed
 import { LevelsBoard } from "@/components/levels-board";
 import { cn } from "cn";
 
-async function postAction(action: string) {
-  const res = await fetch("/api/bot", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
-  return data as PublicBotSnapshot;
-}
-
 function statusTone(status: string) {
   if (status === "running") return "bg-emerald-400/15 text-emerald-300 border-emerald-400/20";
   if (status === "halted") return "bg-rose-400/15 text-rose-300 border-rose-400/20";
@@ -47,7 +37,6 @@ function statusTone(status: string) {
 export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   const [snap, setSnap] = useState<PublicBotSnapshot>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,36 +62,6 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
       clearInterval(id);
     };
   }, []);
-
-  const run = async (action: string) => {
-    if (busy) return;
-    if (action === "start" && state.status === "running") {
-      setError("Already running.");
-      return;
-    }
-    if (action === "pause" && state.status !== "running") {
-      setError("Start the engine first.");
-      return;
-    }
-    if (action === "stop" && state.status === "stopped") {
-      setError("Already stopped.");
-      return;
-    }
-    if (action === "reset" && state.config.mode === "live") {
-      setError("Reset is only available in paper mode.");
-      return;
-    }
-    setBusy(action);
-    try {
-      const next = await postAction(action);
-      setSnap(next);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(null);
-    }
-  };
 
   const paper = snap?.state.paper;
   const totalPnl = paper ? paper.equity - paper.startingEquity : 0;
@@ -153,22 +112,32 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
             first 5m engulfing trigger wins. Live orders stay locked until you add an agent wallet.
           </p>
         </div>
-        <div className="relative z-10 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <Button className="h-11 sm:h-8" onPointerDown={() => void run("start")}>
-            {busy === "start" ? "Starting…" : "Start"}
-          </Button>
-          <Button className="h-11 sm:h-8" variant="outline" onPointerDown={() => void run("pause")}>
-            Pause
-          </Button>
-          <Button className="h-11 sm:h-8" variant="outline" onPointerDown={() => void run("stop")}>
-            Stop
-          </Button>
-          <Button className="h-11 sm:h-8" variant="destructive" onPointerDown={() => void run("kill")}>
-            Kill switch
-          </Button>
-          <Button className="col-span-2 h-11 sm:h-8 sm:col-span-1" variant="ghost" onPointerDown={() => void run("reset")}>
-            Reset paper
-          </Button>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <form action={startEngine}>
+            <SubmitButton className="h-11 w-full sm:h-8 sm:w-auto" pendingLabel="Starting…">
+              Start
+            </SubmitButton>
+          </form>
+          <form action={pauseEngine}>
+            <SubmitButton className="h-11 w-full sm:h-8 sm:w-auto" variant="outline" pendingLabel="Pausing…">
+              Pause
+            </SubmitButton>
+          </form>
+          <form action={stopEngine}>
+            <SubmitButton className="h-11 w-full sm:h-8 sm:w-auto" variant="outline" pendingLabel="Stopping…">
+              Stop
+            </SubmitButton>
+          </form>
+          <form action={killEngine}>
+            <SubmitButton className="h-11 w-full sm:h-8 sm:w-auto" variant="destructive" pendingLabel="Killing…">
+              Kill switch
+            </SubmitButton>
+          </form>
+          <form action={resetPaper}>
+            <SubmitButton className="h-11 w-full sm:h-8 sm:w-auto" variant="ghost" pendingLabel="Resetting…">
+              Reset paper
+            </SubmitButton>
+          </form>
         </div>
       </div>
 
@@ -205,7 +174,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         />
       </div>
 
-      <LevelsBoard snapshot={snap} compact onChange={setSnap} />
+      <LevelsBoard snapshot={snap} compact />
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>

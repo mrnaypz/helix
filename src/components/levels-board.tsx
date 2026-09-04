@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { addLevel, clearLevels, removeLevel } from "@/app/bot-actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { LevelKind, PublicBotSnapshot } from "@/lib/bot/types";
+import type { PublicBotSnapshot } from "@/lib/bot/types";
 import { formatPx } from "@/lib/format";
 import { cn } from "cn";
 
@@ -25,36 +25,26 @@ function phaseTone(phase?: string) {
   return "text-muted-foreground";
 }
 
-function ChoiceRow({
-  value,
-  onChange,
+function RadioRow({
+  name,
   options,
+  defaultValue,
 }: {
-  value: string;
-  onChange: (value: string) => void;
+  name: string;
+  defaultValue: string;
   options: { value: string; label: string }[];
 }) {
   return (
     <div className="flex flex-wrap gap-1 rounded-lg border border-white/15 bg-[#12141a] p-1">
-      {options.map((option) => {
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              onChange(option.value);
-            }}
-            className={cn(
-              "relative z-10 h-8 min-w-11 cursor-pointer rounded-md px-2.5 text-xs capitalize transition-colors",
-              active ? "bg-white/15 text-white" : "text-zinc-400 hover:bg-white/8 hover:text-zinc-200",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+      {options.map((option) => (
+        <label
+          key={option.value}
+          className="inline-flex h-8 min-w-11 cursor-pointer items-center justify-center rounded-md px-2.5 text-xs capitalize text-zinc-400 has-checked:bg-white/15 has-checked:text-white"
+        >
+          <input type="radio" name={name} value={option.value} defaultChecked={option.value === defaultValue} className="sr-only" />
+          {option.label}
+        </label>
+      ))}
     </div>
   );
 }
@@ -62,50 +52,18 @@ function ChoiceRow({
 export function LevelsBoard({
   snapshot,
   compact = false,
-  onChange,
 }: {
   snapshot: PublicBotSnapshot;
   compact?: boolean;
-  onChange?: (next: PublicBotSnapshot) => void;
 }) {
-  const [coin, setCoin] = useState(snapshot.state.config.coins[0] ?? "ETH");
-  const [kind, setKind] = useState<LevelKind>("resistance");
-  const [price, setPrice] = useState("");
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
+  const coins = snapshot.state.config.coins;
+  const defaultCoin = coins[0] ?? "ETH";
   const marks = Object.fromEntries(snapshot.markets.map((m) => [m.coin, m.midPx || m.markPx]));
   const setups = Object.fromEntries(snapshot.state.setups.map((s) => [s.levelId, s]));
-
-  const post = async (action: string, extra: Record<string, unknown> = {}) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/bot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...extra }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      onChange?.(data as PublicBotSnapshot);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const add = async () => {
-    const parsed = Number(price);
-    await post("addLevel", { level: { coin, kind, price: parsed, note } });
-    setPrice("");
-    setNote("");
-  };
+  const mid = marks[defaultCoin];
 
   return (
-    <Card className="relative z-10 overflow-visible">
+    <Card className="overflow-visible">
       <CardHeader className="border-b">
         <CardTitle>{compact ? "Today's levels" : "Morning chart"}</CardTitle>
         <CardDescription>
@@ -114,20 +72,16 @@ export function LevelsBoard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <form action={addLevel} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Market</Label>
-            <ChoiceRow
-              value={coin}
-              onChange={setCoin}
-              options={snapshot.state.config.coins.map((c) => ({ value: c, label: c }))}
-            />
+            <RadioRow name="coin" defaultValue={defaultCoin} options={coins.map((c) => ({ value: c, label: c }))} />
           </div>
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <ChoiceRow
-              value={kind}
-              onChange={(value) => setKind(value as LevelKind)}
+            <RadioRow
+              name="kind"
+              defaultValue="resistance"
               options={[
                 { value: "resistance", label: "Resistance" },
                 { value: "support", label: "Support" },
@@ -135,39 +89,26 @@ export function LevelsBoard({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Price</Label>
+            <Label htmlFor="level-price">Price</Label>
             <Input
+              id="level-price"
+              name="price"
+              required
               inputMode="decimal"
               className="h-11 sm:h-8"
-              placeholder={marks[coin] ? String(marks[coin]) : "81250"}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              placeholder={mid ? String(mid) : "81250"}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Note</Label>
-            <Input placeholder="PDH, overnight high…" value={note} onChange={(e) => setNote(e.target.value)} />
+            <Label htmlFor="level-note">Note</Label>
+            <Input id="level-note" name="note" placeholder="PDH, overnight high…" />
           </div>
-          <div className="flex items-end gap-2">
-            <Button
-              className="relative z-10 h-11 flex-1 cursor-pointer sm:h-8 sm:flex-none"
-              variant="outline"
-              disabled={!marks[coin]}
-              onPointerDown={() => setPrice(marks[coin] ? String(marks[coin]) : "")}
-            >
-              Use mid
-            </Button>
-            <Button
-              className="relative z-10 h-11 flex-1 cursor-pointer sm:h-8 sm:flex-none"
-              disabled={busy || !price}
-              onPointerDown={() => void add()}
-            >
+          <div className="flex items-end">
+            <SubmitButton className="h-11 w-full sm:h-8" pendingLabel="Adding…">
               Add level
-            </Button>
+            </SubmitButton>
           </div>
-        </div>
-
-        {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+        </form>
 
         {snapshot.state.levels.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -189,9 +130,9 @@ export function LevelsBoard({
             </TableHeader>
             <TableBody>
               {snapshot.state.levels.map((level) => {
-                const mid = marks[level.coin];
+                const mark = marks[level.coin];
                 const setup = setups[level.id];
-                const delta = mid ? ((mid - level.price) / level.price) * 100 : null;
+                const delta = mark ? ((mark - level.price) / level.price) * 100 : null;
                 return (
                   <TableRow key={level.id}>
                     <TableCell className="font-medium">{level.coin}</TableCell>
@@ -207,9 +148,12 @@ export function LevelsBoard({
                     </TableCell>
                     {!compact ? <TableCell className="text-muted-foreground">{level.note || "—"}</TableCell> : null}
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" disabled={busy} onClick={() => void post("removeLevel", { id: level.id })}>
-                        Remove
-                      </Button>
+                      <form action={removeLevel}>
+                        <input type="hidden" name="id" value={level.id} />
+                        <SubmitButton variant="ghost" size="sm" pendingLabel="Removing…">
+                          Remove
+                        </SubmitButton>
+                      </form>
                     </TableCell>
                   </TableRow>
                 );
@@ -219,9 +163,11 @@ export function LevelsBoard({
         )}
 
         {snapshot.state.levels.length > 0 ? (
-          <Button variant="ghost" disabled={busy} onClick={() => void post("clearLevels")}>
-            Clear all levels
-          </Button>
+          <form action={clearLevels}>
+            <SubmitButton variant="ghost" pendingLabel="Clearing…">
+              Clear all levels
+            </SubmitButton>
+          </form>
         ) : null}
       </CardContent>
     </Card>
