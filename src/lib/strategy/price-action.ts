@@ -1,4 +1,4 @@
-import type { Candle, ChartLevel, LevelSetup, Signal, StrategyConfig } from "../bot/types";
+import type { Candle, ChartLevel, LevelSetup, SetupPhase, Signal, StrategyConfig } from "../bot/types";
 import { atr as atrSeries, lastFinite } from "./indicators";
 import { isSessionBar, sessionStatus } from "./session";
 
@@ -51,7 +51,7 @@ function replayLevel(args: {
   };
 
   let breakIndex = -1;
-  let phase: LevelSetup["phase"] = "watching";
+  let phase: SetupPhase = "watching";
   let pauseBars = 0;
   let swing: number | null = null;
 
@@ -60,7 +60,6 @@ function replayLevel(args: {
     const curr = candles[i];
     const last = i === candles.length - 1;
     if (curr.t < (level.createdAt || 0)) continue;
-    if (phase === "filled" || phase === "failed") break;
 
     const barsSinceBreak = breakIndex >= 0 ? i - breakIndex : 0;
 

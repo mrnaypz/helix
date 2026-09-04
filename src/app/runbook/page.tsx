@@ -90,7 +90,33 @@ export default function RunbookPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>5. What you still own live</CardTitle>
+            <CardTitle>5. From your phone</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <Need title="The phone is a remote control, not a second bot">
+              Helix has to keep running on a laptop, home PC, or VPS. Your phone just opens the same desk in Safari or
+              Chrome. Chart levels, start, pause, stop, and kill from there.
+            </Need>
+            <Need title="Best: Tailscale">
+              Install Tailscale on the machine that runs Helix and on your phone. Start the desk with `npm run start`
+              (it already listens on all interfaces at port 43187). On the phone, open
+              `http://100.x.x.x:43187` using that machine&apos;s Tailscale IP. Stay on your tailnet — do not port-forward
+              this desk onto the public internet.
+            </Need>
+            <Need title="If you use a public URL">
+              Set `HELIX_PIN` in `.env.local` before you tunnel (Cloudflare Tunnel, ngrok, etc.). The phone will ask
+              for that PIN. Without a PIN, anyone who finds the link can trade.
+            </Need>
+            <Need title="Add it to your home screen">
+              iPhone: Share → Add to Home Screen. Android: menu → Install app / Add to Home screen. It opens as a
+              standalone desk with a bottom nav.
+            </Need>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>6. What you still own live</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <Need title="The levels">If you skip the morning chart, the bot has nothing to trade.</Need>

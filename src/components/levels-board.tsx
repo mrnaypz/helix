@@ -44,7 +44,7 @@ function ChoiceRow({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "h-6 rounded-md px-2.5 text-xs capitalize transition-colors",
+              "h-8 min-w-11 rounded-md px-2.5 text-xs capitalize transition-colors",
               active ? "bg-white/15 text-white" : "text-zinc-400 hover:bg-white/8 hover:text-zinc-200",
             )}
           >
@@ -135,6 +135,7 @@ export function LevelsBoard({
             <Label>Price</Label>
             <Input
               inputMode="decimal"
+              className="h-11 sm:h-8"
               placeholder={marks[coin] ? String(marks[coin]) : "81250"}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
@@ -146,13 +147,14 @@ export function LevelsBoard({
           </div>
           <div className="flex items-end gap-2">
             <Button
+              className="h-11 flex-1 sm:h-8 sm:flex-none"
               variant="outline"
               disabled={!marks[coin]}
               onClick={() => setPrice(marks[coin] ? String(marks[coin]) : "")}
             >
               Use mid
             </Button>
-            <Button disabled={busy || !price} onClick={() => void add()}>
+            <Button className="h-11 flex-1 sm:h-8 sm:flex-none" disabled={busy || !price} onClick={() => void add()}>
               Add level
             </Button>
           </div>

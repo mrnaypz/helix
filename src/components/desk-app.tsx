@@ -136,20 +136,20 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
             first 5m engulfing trigger wins. Live orders stay locked until you add an agent wallet.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={busy !== null || state.status === "running"} onClick={() => void run("start")}>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button className="h-11 sm:h-8" disabled={busy !== null || state.status === "running"} onClick={() => void run("start")}>
             {busy === "start" ? "Starting…" : "Start"}
           </Button>
-          <Button variant="outline" disabled={busy !== null || state.status !== "running"} onClick={() => void run("pause")}>
+          <Button className="h-11 sm:h-8" variant="outline" disabled={busy !== null || state.status !== "running"} onClick={() => void run("pause")}>
             Pause
           </Button>
-          <Button variant="outline" disabled={busy !== null || state.status === "stopped"} onClick={() => void run("stop")}>
+          <Button className="h-11 sm:h-8" variant="outline" disabled={busy !== null || state.status === "stopped"} onClick={() => void run("stop")}>
             Stop
           </Button>
-          <Button variant="destructive" disabled={busy !== null} onClick={() => void run("kill")}>
+          <Button className="h-11 sm:h-8" variant="destructive" disabled={busy !== null} onClick={() => void run("kill")}>
             Kill switch
           </Button>
-          <Button variant="ghost" disabled={busy !== null || state.config.mode === "live"} onClick={() => void run("reset")}>
+          <Button className="col-span-2 h-11 sm:h-8 sm:col-span-1" variant="ghost" disabled={busy !== null || state.config.mode === "live"} onClick={() => void run("reset")}>
             Reset paper
           </Button>
         </div>

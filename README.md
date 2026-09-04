@@ -23,6 +23,20 @@ npm run dev
 
 Open [http://127.0.0.1:43187](http://127.0.0.1:43187).
 
+## Phone
+
+The phone is a remote for the same process. Keep the Next.js desk running on a machine that stays on (`npm run start` after `npm run build`, or `npm run dev`).
+
+**Private (recommended):** install [Tailscale](https://tailscale.com) on that machine and on your phone. Open `http://<tailscale-ip>:43187`. Do not port-forward the desk.
+
+**Public tunnel:** set a PIN first so strangers cannot start or kill the bot:
+
+```bash
+HELIX_PIN=your-phone-pin
+```
+
+Then point Cloudflare Tunnel or ngrok at port 43187. Safari/Chrome will show Unlock. After that, Share → Add to Home Screen (iPhone) or Install app (Android).
+
 Headless engine:
 
 ```bash
