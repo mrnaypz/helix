@@ -135,18 +135,14 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
         <CardHeader>
           <CardTitle>Price-action rules</CardTitle>
           <CardDescription>
-            Break of a charted level, pullback into that level, then a closed 5m engulfing candle in the breakout
-            direction. Stop sits beyond the pullback extreme; target is a reward:risk multiple, or the next level if
-            it is closer.
+            Close through a charted level, then at least a few 5m bars of consolidation (no need to tag the level),
+            then a closed engulfing candle. A close back through the level kills it. No trade until you chart a new
+            price.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Num label="Retest zone (bps)" value={s.retestToleranceBps} step="1" onChange={(v) => setS({ retestToleranceBps: v })} />
-          <Num label="Retest zone (ATR frac)" value={s.retestAtrFrac} step="0.05" onChange={(v) => setS({ retestAtrFrac: v })} />
+          <Num label="Consolidation bars after break" value={s.minConsolidationBars} onChange={(v) => setS({ minConsolidationBars: v })} />
           <Num label="Max 5m bars after break" value={s.maxBarsAfterBreak} onChange={(v) => setS({ maxBarsAfterBreak: v })} />
-          <Num label="Reward : risk" value={s.rewardRisk} step="0.1" onChange={(v) => setS({ rewardRisk: v })} />
-          <Num label="Stop buffer (ATR)" value={s.stopBufferAtr} step="0.05" onChange={(v) => setS({ stopBufferAtr: v })} />
-          <Num label="ATR period" value={s.atrPeriod} onChange={(v) => setS({ atrPeriod: v })} />
         </CardContent>
       </Card>
 
@@ -154,13 +150,15 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
         <CardHeader>
           <CardTitle>Risk</CardTitle>
           <CardDescription>
-            Size is risk-percent divided by stop distance, then capped by max leverage. Daily loss uses the New York date.
+            One market at a time. Size is 70% of equity as margin. Stop and target are account-return percents, so at
+            10x a 5% stop is a 0.5% price move and a 10% target is a 1% price move.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Num label="Risk % per trade" value={s.riskPctPerTrade} step="0.1" onChange={(v) => setS({ riskPctPerTrade: v })} />
+          <Num label="Margin % of account" value={s.marginPct} step="1" onChange={(v) => setS({ marginPct: v })} />
           <Num label="Max leverage" value={s.maxLeverage} onChange={(v) => setS({ maxLeverage: v })} />
-          <Num label="Max positions" value={s.maxPositions} onChange={(v) => setS({ maxPositions: v })} />
+          <Num label="Stop loss (ROE %)" value={s.stopLossRoePct} step="0.1" onChange={(v) => setS({ stopLossRoePct: v })} />
+          <Num label="Take profit (ROE %)" value={s.takeProfitRoePct} step="0.1" onChange={(v) => setS({ takeProfitRoePct: v })} />
           <Num label="Daily loss limit %" value={s.dailyLossLimitPct} step="0.1" onChange={(v) => setS({ dailyLossLimitPct: v })} />
           <Num label="Cooldown after stop (min)" value={s.cooldownMinutes} onChange={(v) => setS({ cooldownMinutes: v })} />
           <Num label="Slippage (bps)" value={s.slippageBps} step="0.1" onChange={(v) => setS({ slippageBps: v })} />

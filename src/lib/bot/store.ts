@@ -9,15 +9,22 @@ const STATE_PATH = path.join(DATA_DIR, "bot-state.json");
 function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConfig {
   const incoming = raw ?? {};
   const fromEma = !("sessionStartMinutes" in incoming);
+  const missingRoe = !("stopLossRoePct" in incoming);
   return {
     ...DEFAULT_STRATEGY,
     ...incoming,
+    maxPositions: 1,
+    minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
+    stopLossRoePct: incoming.stopLossRoePct ?? DEFAULT_STRATEGY.stopLossRoePct,
+    takeProfitRoePct: incoming.takeProfitRoePct ?? DEFAULT_STRATEGY.takeProfitRoePct,
+    marginPct: incoming.marginPct ?? DEFAULT_STRATEGY.marginPct,
     ...(fromEma
       ? {
           sessionStartMinutes: DEFAULT_STRATEGY.sessionStartMinutes,
           sessionEndMinutes: DEFAULT_STRATEGY.sessionEndMinutes,
         }
       : {}),
+    ...(missingRoe ? { maxLeverage: Math.max(incoming.maxLeverage ?? 0, DEFAULT_STRATEGY.maxLeverage) } : {}),
   };
 }
 

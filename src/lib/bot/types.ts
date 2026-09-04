@@ -16,7 +16,7 @@ export type ExecutionMode = "paper" | "live";
 export type Side = "long" | "short";
 export type BotStatus = "stopped" | "running" | "paused" | "halted";
 export type LevelKind = "resistance" | "support";
-export type SetupPhase = "watching" | "broken" | "retested" | "filled" | "failed";
+export type SetupPhase = "watching" | "broken" | "consolidated" | "retested" | "filled" | "failed";
 
 export type Candle = {
   t: number;
@@ -50,8 +50,12 @@ export type StrategyConfig = {
   retestToleranceBps: number;
   retestAtrFrac: number;
   maxBarsAfterBreak: number;
+  minConsolidationBars: number;
   rewardRisk: number;
   stopBufferAtr: number;
+  stopLossRoePct: number;
+  takeProfitRoePct: number;
+  marginPct: number;
 };
 
 export type BotConfig = {
@@ -133,6 +137,7 @@ export type Signal = {
   takePrice?: number;
   levelPrice?: number;
   phase?: SetupPhase;
+  brokeAt?: number | null;
 };
 
 export type MarketSnapshot = {

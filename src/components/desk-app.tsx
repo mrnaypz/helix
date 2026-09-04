@@ -132,9 +132,8 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Execution desk</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Chart your levels in the morning, then start the engine for the New York session. It watches 5-minute
-            Hyperliquid candles for a break, a pullback, and an engulfing continuation. Live orders stay locked until
-            you add an agent wallet.
+            Chart your levels in the morning, then start the engine for the New York session. One asset at a time: the
+            first 5m engulfing trigger wins. Live orders stay locked until you add an agent wallet.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -270,12 +269,15 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         <Card>
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
-            <CardDescription>Stop beyond the pullback extreme; target is R-multiple or the next level</CardDescription>
+            <CardDescription>
+              5% ROE stop and 10% ROE target, inclusive of leverage. One market at a time.
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {state.positions.length === 0 ? (
               <p className="px-4 py-8 text-sm text-muted-foreground">
-                Flat. Waiting for a 5m break → pullback → engulfing on {state.config.coins.join(", ")}.
+                Flat. Waiting for a 5m break, consolidation, then engulfing on {state.config.coins.join(", ")}. First
+                trigger takes the slot.
               </p>
             ) : (
               <Table>

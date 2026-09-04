@@ -18,8 +18,8 @@ export default async function LevelsPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Chart today&apos;s levels</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Mark support and resistance from your morning chart. Leave the engine off until the New York session, then
-            start it on the desk. It will wait for a 5-minute break of a level, a pullback, and an engulfing
-            continuation candle — it will not chase the first breakout print.
+            start it on the desk. A close back through a level kills it. Adding a new level while the engine is running
+            re-arms that market from that print forward — no restart.
           </p>
         </div>
         <LevelsLive initial={snapshot} />

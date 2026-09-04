@@ -17,8 +17,8 @@ export default async function StrategyPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">Your rules</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Price action</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            5-minute New York session. You still chart the levels each morning. The bot takes the break, the pullback,
-            and the engulfing continuation. Tune session hours and risk here; plot levels on the Levels page.
+            5-minute New York session. One asset at a time. Size is 70% of the account as margin. Stops and targets are
+            5% and 10% ROE, inclusive of leverage. Plot levels on the Levels page.
           </p>
         </div>
         <StrategyForm initial={snapshot.state.config} />

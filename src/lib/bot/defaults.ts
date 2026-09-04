@@ -6,8 +6,8 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   atrStopMultiplier: 1.5,
   atrTakeMultiplier: 2.5,
   riskPctPerTrade: 1,
-  maxLeverage: 3,
-  maxPositions: 2,
+  maxLeverage: 10,
+  maxPositions: 1,
   dailyLossLimitPct: 3,
   cooldownMinutes: 30,
   allowShort: true,
@@ -20,8 +20,12 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   retestToleranceBps: 12,
   retestAtrFrac: 0.15,
   maxBarsAfterBreak: 18,
+  minConsolidationBars: 3,
   rewardRisk: 2,
   stopBufferAtr: 0.1,
+  stopLossRoePct: 5,
+  takeProfitRoePct: 10,
+  marginPct: 70,
 };
 
 export const DEFAULT_CONFIG: BotConfig = {

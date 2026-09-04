@@ -31,26 +31,6 @@ export function bearishEngulfing(prev: Candle, curr: Candle): boolean {
   return bodyLow(curr) <= bodyLow(prev) && bodyHigh(curr) >= bodyHigh(prev);
 }
 
-function retestZone(price: number, atrValue: number, config: StrategyConfig): number {
-  return Math.max(price * (config.retestToleranceBps / 10_000), atrValue * config.retestAtrFrac);
-}
-
-function nextTarget(levels: ChartLevel[], coin: string, side: "long" | "short", entry: number): number | null {
-  const same = levels.filter((l) => l.coin === coin);
-  if (side === "long") {
-    const above = same
-      .filter((l) => l.kind === "resistance" && l.price > entry)
-      .map((l) => l.price)
-      .sort((a, b) => a - b);
-    return above[0] ?? null;
-  }
-  const below = same
-    .filter((l) => l.kind === "support" && l.price < entry)
-    .map((l) => l.price)
-    .sort((a, b) => b - a);
-  return below[0] ?? null;
-}
-
 function replayLevel(args: {
   level: ChartLevel;
   candles: Candle[];
@@ -58,7 +38,7 @@ function replayLevel(args: {
   config: StrategyConfig;
 }): { setup: LevelSetup; entry: Signal | null } {
   const { level, candles, atrValue, config } = args;
-  const zone = retestZone(level.price, atrValue, config);
+  const minPause = Math.max(1, Math.round(config.minConsolidationBars ?? 3));
   const setup: LevelSetup = {
     levelId: level.id,
     coin: level.coin,
@@ -72,15 +52,17 @@ function replayLevel(args: {
 
   let breakIndex = -1;
   let phase: LevelSetup["phase"] = "watching";
-  let retestExtreme: number | null = null;
+  let pauseBars = 0;
+  let swing: number | null = null;
 
   for (let i = 1; i < candles.length; i++) {
     const prev = candles[i - 1];
     const curr = candles[i];
     const last = i === candles.length - 1;
-    const barsSinceBreak = breakIndex >= 0 ? i - breakIndex : 0;
-
+    if (curr.t < (level.createdAt || 0)) continue;
     if (phase === "filled" || phase === "failed") break;
+
+    const barsSinceBreak = breakIndex >= 0 ? i - breakIndex : 0;
 
     if (phase === "watching") {
       const longBreak = level.kind === "resistance" && prev.c <= level.price && curr.c > level.price;
@@ -88,13 +70,24 @@ function replayLevel(args: {
       if (longBreak || shortBreak) {
         phase = "broken";
         breakIndex = i;
+        pauseBars = 0;
+        swing = level.kind === "resistance" ? curr.l : curr.h;
         setup.brokeAt = curr.t;
         setup.detail =
           level.kind === "resistance"
-            ? `Broke above ${level.price} — waiting for a pullback`
-            : `Broke below ${level.price} — waiting for a pullback`;
+            ? `Broke above ${level.price} — waiting for ${minPause} bars of consolidation`
+            : `Broke below ${level.price} — waiting for ${minPause} bars of consolidation`;
       }
       continue;
+    }
+
+    const failedLong = level.kind === "resistance" && curr.c < level.price;
+    const failedShort = level.kind === "support" && curr.c > level.price;
+    if (failedLong || failedShort) {
+      phase = "failed";
+      setup.detail =
+        "Invalidated — 5m close back through the level. No trade. Chart a new level to re-arm this market.";
+      break;
     }
 
     if (breakIndex >= 0 && barsSinceBreak > config.maxBarsAfterBreak) {
@@ -103,71 +96,49 @@ function replayLevel(args: {
       break;
     }
 
-    if (phase === "broken" || phase === "retested") {
-      const failedLong = level.kind === "resistance" && curr.c < level.price;
-      const failedShort = level.kind === "support" && curr.c > level.price;
-      if (failedLong || failedShort) {
-        phase = "watching";
-        breakIndex = -1;
-        retestExtreme = null;
-        setup.brokeAt = null;
-        setup.detail = "Failed break — back to watching";
-        continue;
-      }
+    if (level.kind === "resistance") {
+      swing = Math.min(swing ?? curr.l, curr.l);
+    } else {
+      swing = Math.max(swing ?? curr.h, curr.h);
     }
 
     if (phase === "broken") {
-      const longRetest = level.kind === "resistance" && curr.l <= level.price + zone && curr.c >= level.price;
-      const shortRetest = level.kind === "support" && curr.h >= level.price - zone && curr.c <= level.price;
-      if (longRetest || shortRetest) {
-        phase = "retested";
-        retestExtreme = level.kind === "resistance" ? curr.l : curr.h;
-        setup.detail =
-          level.kind === "resistance"
-            ? `Retested ${level.price} — waiting for a bullish engulfing candle`
-            : `Retested ${level.price} — waiting for a bearish engulfing candle`;
+      pauseBars += 1;
+      setup.detail = `Consolidating ${pauseBars}/${minPause} after the break — does not have to tag ${level.price}`;
+      if (pauseBars >= minPause) {
+        phase = "consolidated";
+        setup.detail = `Consolidated — waiting for a ${level.kind === "resistance" ? "bullish" : "bearish"} engulfing trigger`;
       }
       continue;
     }
 
-    if (phase === "retested") {
-      if (level.kind === "resistance") {
-        retestExtreme = Math.min(retestExtreme ?? curr.l, curr.l);
-      } else {
-        retestExtreme = Math.max(retestExtreme ?? curr.h, curr.h);
-      }
-
+    if (phase === "consolidated" || phase === "retested") {
       const longEntry = level.kind === "resistance" && bullishEngulfing(prev, curr);
       const shortEntry = level.kind === "support" && bearishEngulfing(prev, curr);
       if (longEntry || shortEntry) {
         phase = "filled";
-        setup.detail = longEntry ? "Bullish engulfing after retest" : "Bearish engulfing after retest";
+        setup.detail = longEntry
+          ? "Bullish engulfing after consolidation"
+          : "Bearish engulfing after consolidation";
         setup.phase = phase;
-        setup.retestExtreme = retestExtreme;
+        setup.retestExtreme = swing;
         if (!last) {
           return { setup, entry: null };
         }
 
         const side = longEntry ? "long" : "short";
-        const close = curr.c;
-        const buffer = Math.max(atrValue * config.stopBufferAtr, close * 0.0002);
-        const swing = retestExtreme ?? (side === "long" ? curr.l : curr.h);
-        const stopPrice = side === "long" ? Math.min(swing, level.price) - buffer : Math.max(swing, level.price) + buffer;
-        const stopDist = Math.abs(close - stopPrice);
-        const rTarget = side === "long" ? close + stopDist * config.rewardRisk : close - stopDist * config.rewardRisk;
         return {
           setup,
           entry: {
             coin: level.coin,
             action: side,
-            reason: setup.detail + ` at ${level.kind} ${level.price}`,
+            reason: `${setup.detail} at ${level.kind} ${level.price}`,
             atr: atrValue,
-            close,
+            close: curr.c,
             barTime: curr.t,
-            stopPrice,
-            takePrice: rTarget,
             levelPrice: level.price,
             phase,
+            brokeAt: setup.brokeAt,
           },
         };
       }
@@ -175,10 +146,7 @@ function replayLevel(args: {
   }
 
   setup.phase = phase;
-  setup.retestExtreme = retestExtreme;
-  if (phase === "watching" && setup.detail.startsWith("Watching")) {
-    setup.detail = `Watching ${level.kind} ${level.price}`;
-  }
+  setup.retestExtreme = swing;
   return { setup, entry: null };
 }
 
@@ -250,16 +218,15 @@ export function evaluatePriceAction(args: {
   }
 
   if (entries.length) {
-    const signal = entries.sort((a, b) => Math.abs((a.levelPrice ?? 0) - a.close) - Math.abs((b.levelPrice ?? 0) - b.close))[0];
-    const target = nextTarget(coinLevels, args.coin, signal.action === "short" ? "short" : "long", signal.close);
-    if (target && signal.takePrice) {
-      if (signal.action === "long") signal.takePrice = Math.min(signal.takePrice, target);
-      if (signal.action === "short") signal.takePrice = Math.max(signal.takePrice, target);
-    }
+    const signal = entries.sort((a, b) => (a.brokeAt ?? a.barTime) - (b.brokeAt ?? b.barTime))[0];
     return { setups, signal };
   }
 
-  const live = setups.find((s) => s.phase === "retested") ?? setups.find((s) => s.phase === "broken") ?? setups[0];
+  const live =
+    setups.find((s) => s.phase === "consolidated" || s.phase === "retested") ??
+    setups.find((s) => s.phase === "broken") ??
+    setups.find((s) => s.phase === "watching") ??
+    setups[0];
   return {
     setups,
     signal: {
@@ -267,6 +234,7 @@ export function evaluatePriceAction(args: {
       reason: live?.detail ?? "Watching charted levels",
       levelPrice: live?.price,
       phase: live?.phase,
+      brokeAt: live?.brokeAt,
     },
   };
 }

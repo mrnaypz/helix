@@ -6,7 +6,11 @@ const globalForBot = globalThis as unknown as {
 };
 
 export async function getEngine(): Promise<BotEngine> {
-  if (globalForBot.helixEngine && typeof globalForBot.helixEngine.addLevel !== "function") {
+  if (
+    globalForBot.helixEngine &&
+    (typeof globalForBot.helixEngine.addLevel !== "function" ||
+      typeof globalForBot.helixEngine.state.config.strategy.stopLossRoePct !== "number")
+  ) {
     globalForBot.helixEngine = undefined;
     globalForBot.helixBoot = undefined;
   }

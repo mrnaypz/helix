@@ -18,7 +18,7 @@ import { formatPx } from "@/lib/format";
 import { cn } from "cn";
 
 function phaseTone(phase?: string) {
-  if (phase === "retested") return "text-amber-300";
+  if (phase === "retested" || phase === "consolidated") return "text-amber-300";
   if (phase === "broken") return "text-sky-300";
   if (phase === "filled") return "text-emerald-300";
   if (phase === "failed") return "text-rose-300";
@@ -106,8 +106,8 @@ export function LevelsBoard({
       <CardHeader className="border-b">
         <CardTitle>{compact ? "Today's levels" : "Morning chart"}</CardTitle>
         <CardDescription>
-          Plot support and resistance before the New York open. The bot only trades these levels on the 5-minute chart
-          during {snapshot.session.startLabel}–{snapshot.session.endLabel} ET.
+          Plot support and resistance before the New York open. A 5m close back through a level kills that level — no
+          trade. Chart a new price to re-arm that market; if the engine is already running you do not need to restart.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
@@ -162,7 +162,8 @@ export function LevelsBoard({
 
         {snapshot.state.levels.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No levels yet. Chart them here in the morning, then start the engine for the New York session.
+            Chart them here in the morning, then start the engine for the New York session. If a level invalidates,
+            add a new one — the running engine picks it up on the next tick.
           </p>
         ) : (
           <Table>

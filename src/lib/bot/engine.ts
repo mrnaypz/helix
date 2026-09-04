@@ -1,9 +1,9 @@
-import { createInitialState, createPaperAccount, DEFAULT_CONFIG } from "./defaults";
+import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY } from "./defaults";
 import { markToMarket, paperFill } from "./paper";
 import { loadState, saveState } from "./store";
 import { evaluatePriceAction } from "../strategy/price-action";
 import { sessionStatus } from "../strategy/session";
-import { hitStop, hitTake, sizeFromRisk, stopTakePrices } from "../strategy/risk";
+import { hitStop, hitTake, sizeFromMargin, stopTakeFromRoe } from "../strategy/risk";
 import { canTradeLive, liveReadiness, placeMarketLike, setLeverage } from "../hyperliquid/exchange";
 import { fetchCandles, fetchMarkets } from "../hyperliquid/info";
 import type {
@@ -36,6 +36,11 @@ export class BotEngine {
 
   constructor(state?: BotState) {
     this.state = state ?? createInitialState();
+    this.state.config.strategy = {
+      ...DEFAULT_STRATEGY,
+      ...this.state.config.strategy,
+      maxPositions: 1,
+    };
   }
 
   static async create(): Promise<BotEngine> {
@@ -76,7 +81,7 @@ export class BotEngine {
       ...this.state.config,
       ...patch,
       coins: patch.coins?.length ? patch.coins : this.state.config.coins,
-      strategy: { ...this.state.config.strategy, ...(patch.strategy ?? {}) },
+      strategy: { ...this.state.config.strategy, ...(patch.strategy ?? {}), maxPositions: 1 },
     };
     if (next.mode === "live" && !canTradeLive()) {
       throw new Error(
@@ -118,10 +123,13 @@ export class BotEngine {
     };
     this.state.levels.push(level);
     this.state.levels.sort((a, b) => a.coin.localeCompare(b.coin) || b.price - a.price);
+    const live = this.state.status === "running";
     pushEvent(this.state, {
       level: "info",
       coin,
-      message: `Charted ${input.kind} ${price} on ${coin}`,
+      message: live
+        ? `Charted ${input.kind} ${price} on ${coin}. Engine is running — it will watch this level from this print forward. No restart needed.`
+        : `Charted ${input.kind} ${price} on ${coin}. Start the engine when you want it watched.`,
     });
     await this.persist();
     return this.snapshot();
@@ -330,9 +338,9 @@ export class BotEngine {
       const mark = marks[pos.coin];
       if (!mark) continue;
       if (hitStop(pos, mark)) {
-        await this.closePosition(pos.coin, "Stop — beyond pullback / level");
+        await this.closePosition(pos.coin, "Stop — 5% ROE from entry");
       } else if (hitTake(pos, mark)) {
-        await this.closePosition(pos.coin, "Take-profit");
+        await this.closePosition(pos.coin, "Take-profit — 10% ROE from entry");
       }
     }
   }
@@ -342,6 +350,7 @@ export class BotEngine {
     const signals: Signal[] = [];
     const setups: LevelSetup[] = [];
     const lookback = 120;
+    const candidates: Signal[] = [];
 
     for (const coin of config.coins) {
       const candles = await fetchCandles({
@@ -350,7 +359,6 @@ export class BotEngine {
         interval: config.interval,
         count: lookback,
       });
-      const position = this.state.positions.find((p) => p.coin === coin);
       const result = evaluatePriceAction({
         coin,
         candles,
@@ -362,20 +370,37 @@ export class BotEngine {
 
       const alreadyActed = this.state.lastBarProcessed[coin] === result.signal.barTime;
       if (alreadyActed) continue;
-
-      if (position) {
+      if (this.state.positions.some((p) => p.coin === coin)) {
         this.state.lastBarProcessed[coin] = result.signal.barTime;
         continue;
       }
-
       if (result.signal.action === "long" || (result.signal.action === "short" && config.strategy.allowShort)) {
-        await this.openPosition(result.signal);
-        this.state.lastBarProcessed[coin] = result.signal.barTime;
+        candidates.push(result.signal);
       }
     }
 
     this.state.lastSignals = signals;
     this.state.setups = setups;
+
+    if (this.state.positions.length >= config.strategy.maxPositions) {
+      for (const signal of candidates) {
+        this.state.lastBarProcessed[signal.coin] = signal.barTime;
+      }
+      return;
+    }
+
+    candidates.sort((a, b) => {
+      const aKey = a.brokeAt ?? a.barTime;
+      const bKey = b.brokeAt ?? b.barTime;
+      if (aKey !== bKey) return aKey - bKey;
+      return config.coins.indexOf(a.coin) - config.coins.indexOf(b.coin);
+    });
+    const winner = candidates[0];
+    if (!winner) return;
+    await this.openPosition(winner);
+    for (const signal of candidates) {
+      this.state.lastBarProcessed[signal.coin] = signal.barTime;
+    }
   }
 
   private async openPosition(signal: Signal) {
@@ -402,13 +427,12 @@ export class BotEngine {
 
     const market = this.markets.find((m) => m.coin === signal.coin);
     const mark = market?.midPx || market?.markPx || signal.close;
-    const explicitStop = signal.stopPrice ? Math.abs(mark - signal.stopPrice) : undefined;
-    const sized = sizeFromRisk({
+    const leverage = Math.min(config.strategy.maxLeverage, market?.maxLeverage ?? config.strategy.maxLeverage);
+    const sized = sizeFromMargin({
       equity: paper.equity,
       price: mark,
-      atr: signal.atr || mark * 0.005,
+      leverage,
       config,
-      stopDistance: explicitStop,
     });
     if (sized.size <= 0 || sized.notional < 15) {
       pushEvent(this.state, {
@@ -419,10 +443,10 @@ export class BotEngine {
       return;
     }
 
-    const fallback = stopTakePrices(signal.action === "short" ? "short" : "long", mark, signal.atr || mark * 0.005, config);
-    const stopPrice = signal.stopPrice ?? fallback.stopPrice;
-    const takePrice = signal.takePrice ?? fallback.takePrice;
-    const leverage = Math.min(config.strategy.maxLeverage, market?.maxLeverage ?? config.strategy.maxLeverage);
+    const slip = mark * (config.strategy.slippageBps / 10_000);
+    const side = signal.action === "short" ? "short" : "long";
+    const entry = side === "long" ? mark + slip : mark - slip;
+    const { stopPrice, takePrice } = stopTakeFromRoe(side, entry, leverage, config.strategy);
 
     if (config.mode === "live") {
       if (!market) throw new Error(`No market metadata for ${signal.coin}`);
