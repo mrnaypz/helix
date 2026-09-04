@@ -70,7 +70,7 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
           </Field>
           <Field label="Execution">
             <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm [color-scheme:dark] dark:bg-input/30"
               value={config.mode}
               onChange={(e) => setConfig({ ...config, mode: e.target.value as BotConfig["mode"] })}
             >
@@ -80,7 +80,7 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
           </Field>
           <Field label="Market data network">
             <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm [color-scheme:dark] dark:bg-input/30"
               value={config.network}
               onChange={(e) => setConfig({ ...config, network: e.target.value as BotConfig["network"] })}
             >

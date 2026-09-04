@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DarkSelect } from "@/components/dark-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +23,37 @@ function phaseTone(phase?: string) {
   if (phase === "filled") return "text-emerald-300";
   if (phase === "failed") return "text-rose-300";
   return "text-muted-foreground";
+}
+
+function ChoiceRow({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 rounded-lg border border-white/15 bg-[#12141a] p-1">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "h-6 rounded-md px-2.5 text-xs capitalize transition-colors",
+              active ? "bg-white/15 text-white" : "text-zinc-400 hover:bg-white/8 hover:text-zinc-200",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function LevelsBoard({
@@ -72,7 +102,7 @@ export function LevelsBoard({
   };
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader className="border-b">
         <CardTitle>{compact ? "Today's levels" : "Morning chart"}</CardTitle>
         <CardDescription>
@@ -81,10 +111,10 @@ export function LevelsBoard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
-        <div className={cn("grid gap-3", compact ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-5")}>
-          <div className="space-y-1.5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>Market</Label>
-            <DarkSelect
+            <ChoiceRow
               value={coin}
               onChange={setCoin}
               options={snapshot.state.config.coins.map((c) => ({ value: c, label: c }))}
@@ -92,7 +122,7 @@ export function LevelsBoard({
           </div>
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <DarkSelect
+            <ChoiceRow
               value={kind}
               onChange={(value) => setKind(value as LevelKind)}
               options={[
