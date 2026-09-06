@@ -50,6 +50,28 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
 
   return (
     <div className="space-y-6">
+      <Card className="border-emerald-500/25">
+        <CardHeader>
+          <CardTitle>Failed-level exit</CardTitle>
+          <CardDescription>
+            After a trade is open, a later 5m close back through the charted level flattens it. Longs exit on a close
+            below resistance. Shorts exit on a close above support. The 0.5% stop is only the backstop.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-white/8 px-3 py-3">
+            <div>
+              <Label>Flatten if close fails the level</Label>
+              <p className="text-xs text-muted-foreground">On by default. The entry candle itself does not count.</p>
+            </div>
+            <Switch
+              checked={Boolean(s.flattenOnLevelFail)}
+              onCheckedChange={(v) => setS({ flattenOnLevelFail: v })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Universe</CardTitle>
@@ -154,19 +176,6 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
             <Switch
               checked={s.allowRangeBreakEntry}
               onCheckedChange={(v) => setS({ allowRangeBreakEntry: v })}
-            />
-          </div>
-          <div className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 sm:col-span-2">
-            <div>
-              <Label>Flatten if close fails the level</Label>
-              <p className="text-xs text-muted-foreground">
-                After entry, a 5m close back below resistance (or above support) exits the trade. Does not wait for the
-                0.5% stop
-              </p>
-            </div>
-            <Switch
-              checked={s.flattenOnLevelFail}
-              onCheckedChange={(v) => setS({ flattenOnLevelFail: v })}
             />
           </div>
         </CardContent>

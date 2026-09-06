@@ -165,6 +165,11 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
       <div className={`rounded-lg border px-3 py-2 text-sm ${session.inSession ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100" : "border-white/10 bg-white/4 text-muted-foreground"}`}>
         {session.label}. {state.levels.length === 0 ? "No levels charted yet — add them below before the open." : `${state.levels.length} level${state.levels.length === 1 ? "" : "s"} armed.`}
       </div>
+      {state.config.strategy.flattenOnLevelFail ? (
+        <div className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-foreground">
+          Open trades: a later 5m close back through the charted level exits. You do not wait for the 0.5% stop.
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
