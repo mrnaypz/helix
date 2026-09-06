@@ -18,8 +18,8 @@ export default async function StrategyPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Price action</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             5-minute New York session. One asset at a time, always 10x. Size is 70% of the account as margin. Stop is
-            0.5% of price and target is 1% (5% / 10% ROE at 10x). Break-even after 0.55%; a 5-bar give-up after 0.8%.
-            Plot levels on the Levels page.
+            0.5% of price and target is 1% (5% / 10% ROE at 10x). A close back through the level exits an open trade.
+            Break-even after 0.55%; a 5-bar give-up after 0.8%. Plot levels on the Levels page.
           </p>
         </div>
         <StrategyForm initial={snapshot.state.config} />

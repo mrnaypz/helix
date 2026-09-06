@@ -120,6 +120,23 @@ export function shouldGiveUp(
   return closedBarsAfter(closedBarTimes, position.giveUpArmedBarTime) >= wait;
 }
 
+export function closedBackThroughLevel(
+  position: Pick<Position, "side" | "levelPrice" | "entryBarTime">,
+  candles: Array<{ t: number; c: number }>,
+  config: StrategyConfig,
+): boolean {
+  if (!config.flattenOnLevelFail) return false;
+  if (position.levelPrice == null || !Number.isFinite(position.levelPrice) || position.levelPrice <= 0) {
+    return false;
+  }
+  for (const candle of candles) {
+    if (position.entryBarTime != null && candle.t <= position.entryBarTime) continue;
+    if (position.side === "long" && candle.c < position.levelPrice) return true;
+    if (position.side === "short" && candle.c > position.levelPrice) return true;
+  }
+  return false;
+}
+
 export function unrealized(position: Pick<Position, "side" | "size" | "entryPrice">, mark: number): number {
   const dir = position.side === "long" ? 1 : -1;
   return (mark - position.entryPrice) * position.size * dir;

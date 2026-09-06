@@ -24,6 +24,7 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   maxBarsAfterBreak: 18,
   minConsolidationBars: 3,
   allowRangeBreakEntry: true,
+  flattenOnLevelFail: true,
   rewardRisk: 2,
   stopBufferAtr: 0.1,
   stopLossPricePct: 0.5,

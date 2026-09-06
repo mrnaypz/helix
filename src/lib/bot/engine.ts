@@ -10,6 +10,7 @@ import {
   shouldArmGiveUp,
   shouldGiveUp,
   shouldMoveStopToBreakEven,
+  closedBackThroughLevel,
   sizeFromMargin,
   stopTakeFromPrice,
 } from "../strategy/risk";
@@ -383,6 +384,13 @@ export class BotEngine {
         );
         continue;
       }
+      if (closedBackThroughLevel(live, candles, config.strategy)) {
+        await this.closePosition(
+          live.coin,
+          `Stop — 5m close back through the ${live.side === "long" ? "resistance" : "support"} ${live.levelPrice}`,
+        );
+        continue;
+      }
 
       if (shouldMoveStopToBreakEven(live, mark, config.strategy)) {
         moveStopToBreakEven(live);
@@ -541,6 +549,8 @@ export class BotEngine {
       takePrice,
       leverage,
       atrAtEntry: signal.atr,
+      levelPrice: signal.levelPrice ?? null,
+      entryBarTime: signal.barTime,
       strategy: config.strategy,
       mode: config.mode,
     });

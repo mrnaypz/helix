@@ -264,8 +264,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
             <CardDescription>
-              −0.5% stop, +1% target (5% / 10% ROE at 10x). Break-even after +0.55%. After +0.8%, five more 5m bars
-              without the target flattens the trade. Always 10x.
+              −0.5% stop, +1% target (5% / 10% ROE at 10x). A 5m close back through the charted level flattens first.
+              Break-even after +0.55%. After +0.8%, five more 5m bars without the target flattens the trade. Always
+              10x.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">

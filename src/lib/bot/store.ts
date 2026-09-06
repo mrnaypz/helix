@@ -36,6 +36,7 @@ function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConf
     maxLeverage: TRADE_LEVERAGE,
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
     allowRangeBreakEntry: incoming.allowRangeBreakEntry ?? DEFAULT_STRATEGY.allowRangeBreakEntry,
+    flattenOnLevelFail: incoming.flattenOnLevelFail ?? DEFAULT_STRATEGY.flattenOnLevelFail,
     stopLossPricePct: priceFromLegacyRoe(incoming.stopLossPricePct, incoming.stopLossRoePct, DEFAULT_STRATEGY.stopLossPricePct),
     takeProfitPricePct: priceFromLegacyRoe(incoming.takeProfitPricePct, incoming.takeProfitRoePct, DEFAULT_STRATEGY.takeProfitPricePct),
     breakEvenPricePct: priceFromLegacyRoe(incoming.breakEvenPricePct, incoming.breakEvenRoePct, DEFAULT_STRATEGY.breakEvenPricePct),
@@ -76,6 +77,8 @@ export async function loadState(): Promise<BotState> {
       ...p,
       breakEvenStop: p.breakEvenStop ?? false,
       giveUpArmedBarTime: p.giveUpArmedBarTime ?? null,
+      levelPrice: p.levelPrice ?? null,
+      entryBarTime: p.entryBarTime ?? null,
     }));
     parsed.equityCurve = parsed.equityCurve ?? [];
     parsed.lastSignals = parsed.lastSignals ?? [];

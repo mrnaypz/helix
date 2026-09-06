@@ -52,6 +52,7 @@ export type StrategyConfig = {
   maxBarsAfterBreak: number;
   minConsolidationBars: number;
   allowRangeBreakEntry: boolean;
+  flattenOnLevelFail: boolean;
   rewardRisk: number;
   stopBufferAtr: number;
   stopLossPricePct: number;
@@ -108,6 +109,8 @@ export type Position = {
   atrAtEntry: number;
   breakEvenStop: boolean;
   giveUpArmedBarTime: number | null;
+  levelPrice: number | null;
+  entryBarTime: number | null;
 };
 
 export type Fill = {

@@ -156,6 +156,19 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
               onCheckedChange={(v) => setS({ allowRangeBreakEntry: v })}
             />
           </div>
+          <div className="flex items-center justify-between rounded-lg border border-white/8 px-3 py-2 sm:col-span-2">
+            <div>
+              <Label>Flatten if close fails the level</Label>
+              <p className="text-xs text-muted-foreground">
+                After entry, a 5m close back below resistance (or above support) exits the trade. Does not wait for the
+                0.5% stop
+              </p>
+            </div>
+            <Switch
+              checked={s.flattenOnLevelFail}
+              onCheckedChange={(v) => setS({ flattenOnLevelFail: v })}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -166,7 +179,8 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
             One market at a time, always 10x. Size is 70% of equity as margin. Stop and target are price moves, not
             account ROE: −0.5% stop and +1% target. At 10x that is 5% / 10% ROE; if leverage were 5x those would be
             2.5% / 5% ROE because the price stops do not change. After +0.55% the stop moves to break-even. After +0.8%
-            a 5-bar clock starts; if the target is still open, the trade is closed.
+            a 5-bar clock starts; if the target is still open, the trade is closed. A 5m close back through the
+            charted level flattens the open trade so it does not have to wait for the 0.5% stop.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

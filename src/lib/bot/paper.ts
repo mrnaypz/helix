@@ -31,6 +31,8 @@ export function paperFill(args: {
   takePrice?: number;
   leverage: number;
   atrAtEntry?: number;
+  levelPrice?: number | null;
+  entryBarTime?: number | null;
   strategy: StrategyConfig;
   mode?: "paper" | "live";
 }): { fill: Fill; position: Position | null } {
@@ -66,6 +68,8 @@ export function paperFill(args: {
       atrAtEntry: args.atrAtEntry ?? 0,
       breakEvenStop: false,
       giveUpArmedBarTime: null,
+      levelPrice: args.levelPrice ?? null,
+      entryBarTime: args.entryBarTime ?? null,
     };
   } else {
     const existing = args.positions.find((p) => p.coin === args.coin);

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { DEFAULT_CONFIG, DEFAULT_STRATEGY, createPaperAccount } from "../bot/defaults";
 import type { Candle, ChartLevel, Position } from "../bot/types";
 import { paperFill, markToMarket } from "../bot/paper";
-import { priceMovePctFromRoe, roeFromPriceMove, sizeFromMargin, sizeFromRisk, stopTakeFromPrice, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven } from "./risk";
+import { priceMovePctFromRoe, roeFromPriceMove, sizeFromMargin, sizeFromRisk, stopTakeFromPrice, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven, closedBackThroughLevel } from "./risk";
 import { formatClock, parseClock, sessionStatus } from "./session";
 import { bearishEngulfing, bullishEngulfing, evaluatePriceAction } from "./price-action";
 
@@ -275,6 +275,8 @@ describe("trade management", () => {
       atrAtEntry: 1,
       breakEvenStop: false,
       giveUpArmedBarTime: null,
+      levelPrice: 100,
+      entryBarTime: 1_000,
       ...extra,
     };
   }
@@ -300,6 +302,24 @@ describe("trade management", () => {
     assert.equal(shouldGiveUp(pos, four, DEFAULT_STRATEGY), false);
     const five = [...four, 2500];
     assert.equal(shouldGiveUp(pos, five, DEFAULT_STRATEGY), true);
+  });
+
+  it("flattens a long after a later 5m close back below the charted level", () => {
+    const pos = longAt(100.4, 100.3, { levelPrice: 100, entryBarTime: 1_000 });
+    const entryBar = { t: 1_000, c: 100.6 };
+    const fail = { t: 1_300, c: 99.8 };
+    assert.equal(closedBackThroughLevel(pos, [entryBar], DEFAULT_STRATEGY), false);
+    assert.equal(closedBackThroughLevel(pos, [entryBar, fail], DEFAULT_STRATEGY), true);
+    assert.equal(
+      closedBackThroughLevel(pos, [entryBar, fail], { ...DEFAULT_STRATEGY, flattenOnLevelFail: false }),
+      false,
+    );
+  });
+
+  it("flattens a short after a later 5m close back above the charted level", () => {
+    const pos = longAt(99.6, 99.7, { side: "short", levelPrice: 100, entryBarTime: 1_000, stopPrice: 100.5 });
+    assert.equal(closedBackThroughLevel(pos, [{ t: 1_300, c: 100.2 }], DEFAULT_STRATEGY), true);
+    assert.equal(closedBackThroughLevel(pos, [{ t: 1_300, c: 99.4 }], DEFAULT_STRATEGY), false);
   });
 });
 
