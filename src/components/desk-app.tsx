@@ -1,6 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+
+function useClientNow() {
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+    const clock = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(clock);
+  }, []);
+  return hydrated ? nowMs : null;
+}
 import {
   Area,
   AreaChart,
@@ -48,7 +63,7 @@ function statusTone(status: string) {
 export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   const [snap, setSnap] = useState<PublicBotSnapshot>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [nowMs, setNowMs] = useState<number | null>(null);
+  const nowMs = useClientNow();
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +83,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           if (!cancelled) setError(err.message);
         });
     };
-    setNowMs(Date.now());
-    const clock = window.setInterval(() => setNowMs(Date.now()), 1000);
     const id = window.setInterval(load, 2500);
     return () => {
       cancelled = true;
-      window.clearInterval(clock);
       window.clearInterval(id);
     };
   }, []);
@@ -149,7 +161,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
               {session.clock} · {session.inSession ? "NY open" : "NY closed"}
             </Badge>
             {state.lastTickAt ? (
-              <span className="text-xs text-muted-foreground">Tick {relativeTimeLabel(state.lastTickAt, nowMs)}</span>
+              <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                Tick {relativeTimeLabel(state.lastTickAt, nowMs)}
+              </span>
             ) : (
               <span className="text-xs text-muted-foreground">Engine idle</span>
             )}
@@ -432,7 +446,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                 <TableBody>
                   {state.fills.slice(0, 12).map((f) => (
                     <TableRow key={f.id}>
-                      <TableCell className="text-muted-foreground">{relativeTimeLabel(f.ts, nowMs)}</TableCell>
+                      <TableCell className="text-muted-foreground" suppressHydrationWarning>
+                        {relativeTimeLabel(f.ts, nowMs)}
+                      </TableCell>
                       <TableCell>{f.coin}</TableCell>
                       <TableCell>
                         {f.action} {f.side}
@@ -471,7 +487,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                       >
                         {e.level}
                       </span>
-                      <span className="text-xs text-muted-foreground">{relativeTimeLabel(e.ts, nowMs)}</span>
+                      <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                        {relativeTimeLabel(e.ts, nowMs)}
+                      </span>
                     </div>
                     <p className="mt-1 text-foreground/90">{e.message}</p>
                   </li>
