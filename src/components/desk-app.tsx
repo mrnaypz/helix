@@ -1,21 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-
-function useClientNow() {
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-  const [nowMs, setNowMs] = useState<number | null>(null);
-  useEffect(() => {
-    setNowMs(Date.now());
-    const clock = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(clock);
-  }, []);
-  return hydrated ? nowMs : null;
-}
 import {
   Area,
   AreaChart,
@@ -39,7 +24,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { PublicBotSnapshot } from "@/lib/bot/types";
+import type { Position, PublicBotSnapshot } from "@/lib/bot/types";
+
+function useClientNow() {
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+    const clock = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(clock);
+  }, []);
+  return hydrated ? nowMs : null;
+}
 import {
   clsxPositive,
   compactNumber,
@@ -333,56 +333,28 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         </Card>
       </div>
 
+      {state.positions.map((p) => (
+        <OpenPositionTicket key={p.coin} position={p} nowMs={nowMs} />
+      ))}
+
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Positions</CardTitle>
-            <CardDescription>
-              −0.5% stop, {state.config.strategy.oneToOneTarget ? "+0.5% target (1:1 slow day)" : "+1% target"} (at
-              10x). A 5m close back through the charted level flattens first. Break-even after +0.55%. After +0.8%,
-              five more 5m bars without the target flattens the trade. Always 10x.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {state.positions.length === 0 ? (
-              <p className="px-4 py-8 text-sm text-muted-foreground">
+        {state.positions.length === 0 ? (
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle>Positions</CardTitle>
+              <CardDescription>
+                −0.5% stop, {state.config.strategy.oneToOneTarget ? "+0.5% target (1:1 slow day)" : "+1% target"} (at
+                10x). A 5m close back through the charted level flattens first. Always 10x.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
                 Flat. Waiting for a 5m break, consolidation, then engulfing or a range-break close on{" "}
                 {state.config.coins.join(", ")}. First trigger takes the slot.
               </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Coin</TableHead>
-                    <TableHead>Side</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Entry</TableHead>
-                    <TableHead>Stop / TP</TableHead>
-                    <TableHead>uPnL</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {state.positions.map((p) => (
-                    <TableRow key={p.coin}>
-                      <TableCell className="font-medium">{p.coin}</TableCell>
-                      <TableCell className={p.side === "long" ? "text-emerald-400" : "text-rose-400"}>
-                        {p.side}
-                      </TableCell>
-                      <TableCell className="font-mono">{p.size.toPrecision(4)}</TableCell>
-                      <TableCell className="font-mono">{formatPx(p.entryPrice)}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {formatPx(p.stopPrice)} / {formatPx(p.takePrice)}
-                        {p.breakEvenStop ? " · BE" : ""}
-                        {p.giveUpArmedBarTime != null ? " · clock" : ""}
-                      </TableCell>
-                      <TableCell className={clsxPositive(p.unrealizedPnl)}>{signedMoney(p.unrealizedPnl)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader className="border-b">
@@ -439,6 +411,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                     <TableHead>When</TableHead>
                     <TableHead>Coin</TableHead>
                     <TableHead>Action</TableHead>
+                    <TableHead>Size</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>PnL</TableHead>
                   </TableRow>
@@ -453,6 +426,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                       <TableCell>
                         {f.action} {f.side}
                       </TableCell>
+                      <TableCell className="font-mono text-xs">{f.size.toPrecision(4)}</TableCell>
                       <TableCell className="font-mono">{formatPx(f.price)}</TableCell>
                       <TableCell className={clsxPositive(f.pnl)}>{f.action === "close" ? signedMoney(f.pnl) : "—"}</TableCell>
                     </TableRow>
@@ -518,6 +492,99 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         Volume on tape {markets.map((m) => `${m.coin} ${compactNumber(m.dayNtlVlm)}`).join(" · ") || "—"}. This is not
         financial advice. Size, keys, and go-live stay under your control.
       </p>
+    </div>
+  );
+}
+
+function OpenPositionTicket({ position: p, nowMs }: { position: Position; nowMs: number | null }) {
+  const margin = p.leverage > 0 ? p.notional / p.leverage : 0;
+  const roe = margin > 0 ? (p.unrealizedPnl / margin) * 100 : 0;
+  const move =
+    p.entryPrice > 0
+      ? ((p.side === "long" ? p.markPrice - p.entryPrice : p.entryPrice - p.markPrice) / p.entryPrice) * 100
+      : 0;
+  const toStop =
+    p.entryPrice > 0
+      ? ((p.side === "long" ? p.stopPrice - p.entryPrice : p.entryPrice - p.stopPrice) / p.entryPrice) * 100
+      : 0;
+  const toTake =
+    p.entryPrice > 0
+      ? ((p.side === "long" ? p.takePrice - p.entryPrice : p.entryPrice - p.takePrice) / p.entryPrice) * 100
+      : 0;
+
+  return (
+    <Card className="border-white/15">
+      <CardHeader className="border-b">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              Open {p.coin}
+              <span className={p.side === "long" ? "text-emerald-400" : "text-rose-400"}>{p.side}</span>
+              <span className="text-sm font-normal text-muted-foreground">{p.leverage}x</span>
+            </CardTitle>
+            <CardDescription>
+              {p.breakEvenStop ? "Stop is at break-even. " : ""}
+              {p.giveUpArmedBarTime != null ? "Give-up clock is armed. " : ""}
+              Kill switch flattens this trade. Remove on the level does not.
+            </CardDescription>
+          </div>
+          <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+            Opened {relativeTimeLabel(p.openedAt, nowMs)}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+        <TicketField label="Size" value={p.size.toPrecision(6)} hint={`Notional ${money(p.notional)}`} />
+        <TicketField label="Entry" value={formatPx(p.entryPrice)} hint={`Mark ${formatPx(p.markPrice)}`} />
+        <TicketField
+          label="Unrealized"
+          value={signedMoney(p.unrealizedPnl)}
+          hint={`${pct(move)} price · ${pct(roe)} ROE`}
+          tone={p.unrealizedPnl}
+        />
+        <TicketField
+          label="Margin"
+          value={money(margin)}
+          hint="70% of equity at 10x"
+        />
+        <TicketField
+          label="Stop"
+          value={formatPx(p.stopPrice)}
+          hint={`${pct(toStop)} from entry${p.breakEvenStop ? " · BE" : ""}`}
+        />
+        <TicketField label="Take profit" value={formatPx(p.takePrice)} hint={`${pct(toTake)} from entry`} />
+        <TicketField
+          label="Charted level"
+          value={p.levelPrice != null ? formatPx(p.levelPrice) : "—"}
+          hint="5m close back through this flattens"
+        />
+        <TicketField
+          label="Distance to mark"
+          value={pct(move)}
+          hint={p.side === "long" ? "Mark vs entry" : "Entry vs mark (short)"}
+          tone={move}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function TicketField({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: number;
+}) {
+  return (
+    <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-3">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 font-mono text-lg font-medium", tone !== undefined && clsxPositive(tone))}>{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
