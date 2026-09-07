@@ -87,4 +87,13 @@ describe("closed trade recap", () => {
     assert.equal(recaps[0]?.levelPrice, null);
     assert.ok((recaps[0]?.priceMovePct ?? 0) < 0);
   });
+
+  it("pairs fills stored newest-first the way the desk keeps them", () => {
+    const recaps = closedTradesFromFills([
+      fill({ id: "c1", ts: 5_000, action: "close", price: 39.8, pnl: -20 }),
+      fill({ id: "o1", ts: 4_000, action: "open", price: 40, pnl: 0, reason: "entry" }),
+    ]);
+    assert.equal(recaps[0]?.entryPrice, 40);
+    assert.equal(recaps[0]?.exitPrice, 39.8);
+  });
 });

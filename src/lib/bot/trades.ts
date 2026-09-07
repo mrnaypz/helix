@@ -1,4 +1,4 @@
-import type { ClosedTrade, Fill, Position } from "./types";
+import type { BotState, ClosedTrade, Fill, Position } from "./types";
 
 export function snapshotClosedTrade(position: Position, fill: Fill): ClosedTrade {
   const entry = position.entryPrice;
@@ -55,7 +55,7 @@ export function closedTradesFromFills(fills: Fill[], leverage = 10): ClosedTrade
       openStack.push(fill);
       continue;
     }
-    const openIdx = openStack.findLastIndex((o) => o.coin === fill.coin && o.side === fill.side);
+    const openIdx = openStack.findLastIndex((o) => o.coin === fill.coin);
     const open = openIdx >= 0 ? openStack.splice(openIdx, 1)[0] : undefined;
     const entry = open?.price ?? 0;
     const exit = fill.price;
@@ -93,4 +93,11 @@ export function closedTradesFromFills(fills: Fill[], leverage = 10): ClosedTrade
     });
   }
   return out.sort((a, b) => b.closedAt - a.closedAt);
+}
+
+export function ensureClosedTrades(state: Pick<BotState, "closedTrades" | "fills" | "config">): ClosedTrade[] {
+  if (state.closedTrades?.length) return state.closedTrades;
+  const rebuilt = closedTradesFromFills(state.fills ?? [], state.config.strategy.maxLeverage);
+  state.closedTrades = rebuilt;
+  return rebuilt;
 }

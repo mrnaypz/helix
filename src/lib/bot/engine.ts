@@ -1,7 +1,7 @@
 import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY, TRADE_LEVERAGE } from "./defaults";
 import { markToMarket, paperFill } from "./paper";
 import { loadState, migrateCoins, saveState } from "./store";
-import { snapshotClosedTrade } from "./trades";
+import { ensureClosedTrades, snapshotClosedTrade } from "./trades";
 import { evaluatePriceAction } from "../strategy/price-action";
 import { sessionStatus } from "../strategy/session";
 import {
@@ -58,6 +58,7 @@ export class BotEngine {
     };
     this.state.config.coins = migrateCoins(this.state.config.coins);
     this.state.closedTrades = this.state.closedTrades ?? [];
+    ensureClosedTrades(this.state);
   }
 
   static async create(): Promise<BotEngine> {
@@ -70,6 +71,7 @@ export class BotEngine {
   }
 
   snapshot() {
+    ensureClosedTrades(this.state);
     const session = sessionStatus(Date.now(), this.state.config.strategy);
     return {
       state: this.state,

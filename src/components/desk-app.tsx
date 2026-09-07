@@ -36,6 +36,7 @@ import {
   relativeTimeLabel,
   signedMoney,
 } from "@/lib/format";
+import { closedTradesFromFills } from "@/lib/bot/trades";
 import { LevelsBoard } from "@/components/levels-board";
 import { cn } from "cn";
 
@@ -97,6 +98,12 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   const dayPnl = paper ? paper.equity - paper.dayStartEquity : 0;
   const dayPct = paper && paper.dayStartEquity ? (dayPnl / paper.dayStartEquity) * 100 : 0;
 
+  const { state, markets, live } = snap;
+  const closedTrades = useMemo(() => {
+    if (state.closedTrades?.length) return state.closedTrades;
+    return closedTradesFromFills(state.fills ?? [], state.config.strategy.maxLeverage);
+  }, [state]);
+
   const chartData = useMemo(
     () =>
       (snap?.state.equityCurve ?? []).map((p) => ({
@@ -105,8 +112,6 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
       })),
     [snap],
   );
-
-  const { state, markets, live } = snap;
   const session = snap.session ?? {
     inSession: false,
     weekend: false,
@@ -257,6 +262,32 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         />
       </div>
 
+      {state.positions.map((p) => (
+        <OpenPositionTicket key={p.coin} position={p} nowMs={nowMs} />
+      ))}
+
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Closed trades</h2>
+          <p className="text-sm text-muted-foreground">
+            Size, entry, exit, stop, target, level, and ROE for each flatten. Older closes may miss stop and level.
+          </p>
+        </div>
+        {closedTrades.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+              {state.fills.some((f) => f.action === "close")
+                ? "There are close fills, but a recap could not be built. Restart npm run dev after pulling."
+                : "No closed trades yet. The next stop, target, level-fail, session flatten, or kill switch will leave a recap here."}
+            </CardContent>
+          </Card>
+        ) : (
+          closedTrades.slice(0, 8).map((trade) => (
+            <ClosedTradeTicket key={trade.id} trade={trade} nowMs={nowMs} />
+          ))
+        )}
+      </div>
+
       <LevelsBoard snapshot={snap} compact />
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
@@ -334,10 +365,6 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         </Card>
       </div>
 
-      {state.positions.map((p) => (
-        <OpenPositionTicket key={p.coin} position={p} nowMs={nowMs} />
-      ))}
-
       <div className="grid gap-4 xl:grid-cols-2">
         {state.positions.length === 0 ? (
           <Card>
@@ -394,27 +421,6 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Closed trades</h2>
-          <p className="text-sm text-muted-foreground">
-            Full ticket after each flatten. Older closes rebuilt from fills may be missing stop, target, and level.
-          </p>
-        </div>
-        {(state.closedTrades ?? []).length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-sm text-muted-foreground">
-              No closed trades yet. The next stop, target, level-fail, session flatten, or kill switch will leave a
-              recap here.
-            </CardContent>
-          </Card>
-        ) : (
-          (state.closedTrades ?? []).slice(0, 8).map((trade) => (
-            <ClosedTradeTicket key={trade.id} trade={trade} nowMs={nowMs} />
-          ))
-        )}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
