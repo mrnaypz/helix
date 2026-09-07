@@ -50,6 +50,30 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
 
   return (
     <div className="space-y-6">
+      <Card className="border-amber-400/30">
+        <CardHeader>
+          <CardTitle>Slow day · 1:1 target</CardTitle>
+          <CardDescription>
+            Turns take profit to 0.5% — the same distance as the stop. The 1% take-profit field, break-even at 0.55%,
+            and the 0.8% give-up clock are ignored while this is on, because the trade is already out at 0.5%.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-white/8 px-3 py-3">
+            <div>
+              <Label>1:1 take profit (0.5%)</Label>
+              <p className="text-xs text-muted-foreground">
+                Off by default. Use this on a slow tape. Same switch is on the Desk.
+              </p>
+            </div>
+            <Switch
+              checked={Boolean(s.oneToOneTarget)}
+              onCheckedChange={(v) => setS({ oneToOneTarget: v })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-emerald-500/25">
         <CardHeader>
           <CardTitle>Failed-level exit</CardTitle>

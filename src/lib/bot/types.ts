@@ -57,6 +57,7 @@ export type StrategyConfig = {
   stopBufferAtr: number;
   stopLossPricePct: number;
   takeProfitPricePct: number;
+  oneToOneTarget: boolean;
   breakEvenPricePct: number;
   giveUpPricePct: number;
   giveUpBars: number;

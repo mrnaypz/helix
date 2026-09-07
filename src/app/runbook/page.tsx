@@ -25,7 +25,7 @@ export default function RunbookPage() {
               <li>Start the engine when you want it watching. Entries are blocked until 09:30 ET (editable).</li>
               <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then either a closed engulfing candle that finishes beyond the previous wick, or a continuation close beyond the high/low of the breakout plus that consolidation.</li>
               <li>If a 5m candle closes back through the level before entry, that level is dead. No trade. If you are already in, the same close flattens the position so it does not have to ride the 0.5% stop.</li>
-              <li>One market at a time, always 10x on BTC, ETH, SOL, and HYPE. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is −0.5% of price and target is +1% (5% / 10% ROE at 10x). After +0.55% the stop moves to break-even. After +0.8% it waits five 5m candles and flattens if the target is still open.</li>
+              <li>One market at a time, always 10x on BTC, ETH, SOL, and HYPE. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is −0.5% of price and target is +1% (5% / 10% ROE at 10x). On a slow day, the Desk 1:1 switch forces take profit to 0.5% and ignores the 1% target. After +0.55% the stop moves to break-even. After +0.8% it waits five 5m candles and flattens if the target is still open.</li>
               <li>At 16:00 ET it flattens (optional). Kill switch is always available.</li>
             </ol>
           </CardContent>

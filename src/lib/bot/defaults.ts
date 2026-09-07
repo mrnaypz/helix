@@ -29,6 +29,7 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   stopBufferAtr: 0.1,
   stopLossPricePct: 0.5,
   takeProfitPricePct: 1,
+  oneToOneTarget: false,
   breakEvenPricePct: 0.55,
   giveUpPricePct: 0.8,
   giveUpBars: 5,

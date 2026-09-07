@@ -13,6 +13,8 @@ import {
   closedBackThroughLevel,
   sizeFromMargin,
   stopTakeFromPrice,
+  takePriceFromEntry,
+  effectiveTakeProfitPricePct,
 } from "../strategy/risk";
 import { canTradeLive, liveReadiness, placeMarketLike, setLeverage } from "../hyperliquid/exchange";
 import { fetchCandles, fetchMarkets } from "../hyperliquid/info";
@@ -106,12 +108,24 @@ export class BotEngine {
       this.state.equityCurve = [{ ts: Date.now(), equity: next.startingEquity }];
     }
     const tickChanged = next.tickMs !== this.state.config.tickMs;
+    const oneToOneChanged = this.state.config.strategy.oneToOneTarget !== next.strategy.oneToOneTarget;
     this.state.config = next;
     this.state.levels = this.state.levels.filter((l) => next.coins.includes(l.coin));
     this.state.setups = this.state.setups.filter((s) => next.coins.includes(s.coin));
+    for (const pos of this.state.positions) {
+      pos.takePrice = takePriceFromEntry(pos.side, pos.entryPrice, next.strategy);
+    }
     if (tickChanged && this.state.status === "running") this.startLoop();
     await this.persist();
-    pushEvent(this.state, { level: "info", message: "Strategy config updated" });
+    const tp = effectiveTakeProfitPricePct(next.strategy);
+    pushEvent(this.state, {
+      level: "info",
+      message: oneToOneChanged
+        ? next.strategy.oneToOneTarget
+          ? `Slow day on — take profit is ${tp}% (1:1 with the stop). The 1% target is ignored.`
+          : `Slow day off — take profit is ${tp}% again.`
+        : "Strategy config updated",
+    });
     return this.snapshot();
   }
 
@@ -374,7 +388,7 @@ export class BotEngine {
       const lastBarTime = barTimes.at(-1);
 
       if (hitTake(live, mark)) {
-        await this.closePosition(live.coin, `Take-profit — ${config.strategy.takeProfitPricePct}% from entry`);
+        await this.closePosition(live.coin, `Take-profit — ${effectiveTakeProfitPricePct(config.strategy)}% from entry`);
         continue;
       }
       if (hitStop(live, mark)) {

@@ -37,6 +37,7 @@ function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConf
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
     allowRangeBreakEntry: incoming.allowRangeBreakEntry ?? DEFAULT_STRATEGY.allowRangeBreakEntry,
     flattenOnLevelFail: incoming.flattenOnLevelFail ?? DEFAULT_STRATEGY.flattenOnLevelFail,
+    oneToOneTarget: incoming.oneToOneTarget ?? DEFAULT_STRATEGY.oneToOneTarget,
     stopLossPricePct: priceFromLegacyRoe(incoming.stopLossPricePct, incoming.stopLossRoePct, DEFAULT_STRATEGY.stopLossPricePct),
     takeProfitPricePct: priceFromLegacyRoe(incoming.takeProfitPricePct, incoming.takeProfitRoePct, DEFAULT_STRATEGY.takeProfitPricePct),
     breakEvenPricePct: priceFromLegacyRoe(incoming.breakEvenPricePct, incoming.breakEvenRoePct, DEFAULT_STRATEGY.breakEvenPricePct),

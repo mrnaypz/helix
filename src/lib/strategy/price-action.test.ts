@@ -247,6 +247,14 @@ describe("risk sizing", () => {
     assert.equal(atFive.takePrice, 101);
   });
 
+  it("slow-day 1:1 toggle sets take profit to 0.5% and ignores the 1% field", () => {
+    const tight = stopTakeFromPrice("long", 100, { ...DEFAULT_STRATEGY, oneToOneTarget: true, takeProfitPricePct: 1 });
+    assert.equal(tight.stopPrice, 99.5);
+    assert.ok(Math.abs(tight.takePrice - 100.5) < 1e-9);
+    const short = stopTakeFromPrice("short", 100, { ...DEFAULT_STRATEGY, oneToOneTarget: true });
+    assert.ok(Math.abs(short.takePrice - 99.5) < 1e-9);
+  });
+
   it("sizeFromRisk follows the margin model", () => {
     const sized = sizeFromRisk({
       equity: 1000,

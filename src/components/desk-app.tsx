@@ -13,6 +13,8 @@ import {
 import { killEngine, pauseEngine, resetPaper, startEngine, stopEngine } from "@/app/bot-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
 import {
   Table,
@@ -87,6 +89,32 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
     label: "Session clock unavailable",
     startLabel: "09:30",
     endLabel: "16:00",
+  };
+
+  const setOneToOne = async (on: boolean) => {
+    setSnap((prev) => ({
+      ...prev,
+      state: {
+        ...prev.state,
+        config: {
+          ...prev.state.config,
+          strategy: { ...prev.state.config.strategy, oneToOneTarget: on },
+        },
+      },
+    }));
+    try {
+      const res = await fetch("/api/bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "config", config: { strategy: { oneToOneTarget: on } } }),
+      });
+      const data = (await res.json()) as PublicBotSnapshot & { error?: string };
+      if (!res.ok) throw new Error(data.error || "Could not save 1:1 target");
+      setSnap(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   return (
@@ -170,6 +198,20 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           Open trades: a later 5m close back through the charted level exits. You do not wait for the 0.5% stop.
         </div>
       ) : null}
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-white/15 bg-white/5 px-3 py-3">
+        <div>
+          <Label>Slow day · 1:1 target</Label>
+          <p className="text-xs text-muted-foreground">
+            {state.config.strategy.oneToOneTarget
+              ? "Take profit is 0.5% (same as the stop). The 1% target is ignored until you turn this off."
+              : "Off. Take profit stays 1%. Turn on if the tape is slow and you want 1:1."}
+          </p>
+        </div>
+        <Switch
+          checked={Boolean(state.config.strategy.oneToOneTarget)}
+          onCheckedChange={(v) => void setOneToOne(v)}
+        />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
@@ -269,9 +311,9 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardHeader className="border-b">
             <CardTitle>Positions</CardTitle>
             <CardDescription>
-              −0.5% stop, +1% target (5% / 10% ROE at 10x). A 5m close back through the charted level flattens first.
-              Break-even after +0.55%. After +0.8%, five more 5m bars without the target flattens the trade. Always
-              10x.
+              −0.5% stop, {state.config.strategy.oneToOneTarget ? "+0.5% target (1:1 slow day)" : "+1% target"} (at
+              10x). A 5m close back through the charted level flattens first. Break-even after +0.55%. After +0.8%,
+              five more 5m bars without the target flattens the trade. Always 10x.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">

@@ -8,13 +8,22 @@ export function roeFromPriceMove(pricePct: number, leverage: number): number {
   return pricePct * Math.max(leverage, 1);
 }
 
+export function effectiveTakeProfitPricePct(config: StrategyConfig): number {
+  if (config.oneToOneTarget) return config.stopLossPricePct;
+  return config.takeProfitPricePct;
+}
+
+export function takePriceFromEntry(side: Side, entry: number, config: StrategyConfig): number {
+  const takePct = effectiveTakeProfitPricePct(config) / 100;
+  return side === "long" ? entry * (1 + takePct) : entry * (1 - takePct);
+}
+
 export function stopTakeFromPrice(side: Side, entry: number, config: StrategyConfig) {
   const stopPct = config.stopLossPricePct / 100;
-  const takePct = config.takeProfitPricePct / 100;
   if (side === "long") {
-    return { stopPrice: entry * (1 - stopPct), takePrice: entry * (1 + takePct) };
+    return { stopPrice: entry * (1 - stopPct), takePrice: takePriceFromEntry(side, entry, config) };
   }
-  return { stopPrice: entry * (1 + stopPct), takePrice: entry * (1 - takePct) };
+  return { stopPrice: entry * (1 + stopPct), takePrice: takePriceFromEntry(side, entry, config) };
 }
 
 /** @deprecated price stops are leverage-independent; kept for call sites that still pass leverage */
