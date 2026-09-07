@@ -373,7 +373,10 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         <Card>
           <CardHeader className="border-b">
             <CardTitle>Last signals</CardTitle>
-            <CardDescription>5-minute New York session, last closed bar</CardDescription>
+            <CardDescription>
+              5-minute New York session, last closed bar. Thin dojis, long opposing wicks, and blow-through breaks are
+              rejected.
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {state.lastSignals.length === 0 ? (

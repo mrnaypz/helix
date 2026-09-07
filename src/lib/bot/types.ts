@@ -52,6 +52,9 @@ export type StrategyConfig = {
   maxBarsAfterBreak: number;
   minConsolidationBars: number;
   allowRangeBreakEntry: boolean;
+  maxBreakThroughAtr: number;
+  minEngulfBodyAtr: number;
+  maxOpposingWickFrac: number;
   flattenOnLevelFail: boolean;
   rewardRisk: number;
   stopBufferAtr: number;

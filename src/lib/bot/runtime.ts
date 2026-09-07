@@ -13,6 +13,9 @@ export async function getEngine(): Promise<BotEngine> {
       typeof globalForBot.helixEngine.state.config.strategy.stopLossPricePct !== "number" ||
       typeof globalForBot.helixEngine.state.config.strategy.breakEvenPricePct !== "number" ||
       typeof globalForBot.helixEngine.state.config.strategy.allowRangeBreakEntry !== "boolean" ||
+      typeof globalForBot.helixEngine.state.config.strategy.maxBreakThroughAtr !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.minEngulfBodyAtr !== "number" ||
+      typeof globalForBot.helixEngine.state.config.strategy.maxOpposingWickFrac !== "number" ||
       typeof globalForBot.helixEngine.state.config.strategy.flattenOnLevelFail !== "boolean" ||
       typeof globalForBot.helixEngine.state.config.strategy.oneToOneTarget !== "boolean" ||
       globalForBot.helixEngine.state.config.strategy.maxLeverage !== TRADE_LEVERAGE ||

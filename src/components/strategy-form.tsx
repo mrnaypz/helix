@@ -205,6 +205,37 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
         </CardContent>
       </Card>
 
+      <Card className="border-white/15">
+        <CardHeader>
+          <CardTitle>Candle quality</CardTitle>
+          <CardDescription>
+            ATR is a typical recent 5m stretch. A break that closes more than 1.5× that through the level is dead — no
+            consolidation, no trade. An engulfing needs a real body on both the trigger and the previous bar (0.25×
+            ATR), and the trigger cannot be mostly an opposing wick (buy tail on a short, sell tail on a long).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Num
+            label="Max break through (× ATR)"
+            value={s.maxBreakThroughAtr}
+            step="0.1"
+            onChange={(v) => setS({ maxBreakThroughAtr: v })}
+          />
+          <Num
+            label="Min engulfing body (× ATR)"
+            value={s.minEngulfBodyAtr}
+            step="0.05"
+            onChange={(v) => setS({ minEngulfBodyAtr: v })}
+          />
+          <Num
+            label="Max opposing wick (% of bar)"
+            value={Math.round((s.maxOpposingWickFrac ?? 0.3) * 100)}
+            step="1"
+            onChange={(v) => setS({ maxOpposingWickFrac: v / 100 })}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Risk</CardTitle>

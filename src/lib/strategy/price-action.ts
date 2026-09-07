@@ -56,13 +56,70 @@ export function bearishRangeBreak(curr: Candle, rangeLow: number): boolean {
   return isBearish(curr) && curr.c < rangeLow;
 }
 
+export function candleBody(c: Candle): number {
+  return Math.abs(c.c - c.o);
+}
+
+export function candleRange(c: Candle): number {
+  return Math.max(c.h - c.l, 0);
+}
+
+export function opposingWickFraction(c: Candle, side: "long" | "short"): number {
+  const range = candleRange(c);
+  if (range <= 0) return 1;
+  if (side === "long") return (c.h - Math.max(c.o, c.c)) / range;
+  return (Math.min(c.o, c.c) - c.l) / range;
+}
+
+export function atrPriorTo(history: Candle[], atrValues: number[], barTime: number): number {
+  const idx = history.findIndex((c) => c.t === barTime);
+  const end = idx === -1 ? history.length : idx;
+  for (let j = end - 1; j >= 0; j--) {
+    if (Number.isFinite(atrValues[j]) && atrValues[j]! > 0) return atrValues[j]!;
+  }
+  if (end <= 0) return 0;
+  let sum = 0;
+  for (let j = 0; j < end; j++) {
+    const c = history[j];
+    const tr =
+      j === 0
+        ? c.h - c.l
+        : Math.max(c.h - c.l, Math.abs(c.h - history[j - 1].c), Math.abs(c.l - history[j - 1].c));
+    sum += tr;
+  }
+  return sum / end;
+}
+
+export function breakTooFarThroughLevel(close: number, levelPrice: number, atr: number, maxAtr: number): boolean {
+  if (atr <= 0 || maxAtr <= 0) return false;
+  return Math.abs(close - levelPrice) > maxAtr * atr + 1e-12;
+}
+
+export function engulfingMeetsQuality(args: {
+  prev: Candle;
+  curr: Candle;
+  side: "long" | "short";
+  atr: number;
+  minBodyAtr: number;
+  maxOpposingWickFrac: number;
+}): boolean {
+  const { prev, curr, side, atr, minBodyAtr, maxOpposingWickFrac } = args;
+  if (atr <= 0) return false;
+  const need = minBodyAtr * atr;
+  if (candleBody(prev) + 1e-12 < need) return false;
+  if (candleBody(curr) + 1e-12 < need) return false;
+  return opposingWickFraction(curr, side) + 1e-12 < maxOpposingWickFrac;
+}
+
 function replayLevel(args: {
   level: ChartLevel;
   candles: Candle[];
+  history: Candle[];
+  atrValues: number[];
   atrValue: number;
   config: StrategyConfig;
 }): { setup: LevelSetup; entry: Signal | null } {
-  const { level, candles, atrValue, config } = args;
+  const { level, candles, history, atrValues, atrValue, config } = args;
   const minPause = Math.max(1, Math.round(config.minConsolidationBars ?? 3));
   const setup: LevelSetup = {
     levelId: level.id,
@@ -92,6 +149,13 @@ function replayLevel(args: {
       const longBreak = level.kind === "resistance" && prev.c <= level.price && curr.c > level.price;
       const shortBreak = level.kind === "support" && prev.c >= level.price && curr.c < level.price;
       if (longBreak || shortBreak) {
+        const atr = atrPriorTo(history, atrValues, curr.t);
+        if (breakTooFarThroughLevel(curr.c, level.price, atr, config.maxBreakThroughAtr ?? 1.5)) {
+          phase = "failed";
+          setup.brokeAt = curr.t;
+          setup.detail = `Invalidated — break close more than ${config.maxBreakThroughAtr ?? 1.5}× ATR through the level`;
+          break;
+        }
         phase = "broken";
         breakIndex = i;
         pauseBars = 0;
@@ -140,8 +204,30 @@ function replayLevel(args: {
 
     if (phase === "consolidated" || phase === "retested") {
       const range = postBreakRange(candles, breakIndex, i);
-      const longEngulf = level.kind === "resistance" && bullishEngulfing(prev, curr);
-      const shortEngulf = level.kind === "support" && bearishEngulfing(prev, curr);
+      const atr = atrPriorTo(history, atrValues, curr.t);
+      const quality = {
+        prev,
+        curr,
+        atr,
+        minBodyAtr: config.minEngulfBodyAtr ?? 0.25,
+        maxOpposingWickFrac: config.maxOpposingWickFrac ?? 0.3,
+      };
+      const longEngulf =
+        level.kind === "resistance" &&
+        bullishEngulfing(prev, curr) &&
+        engulfingMeetsQuality({ ...quality, side: "long" });
+      const shortEngulf =
+        level.kind === "support" &&
+        bearishEngulfing(prev, curr) &&
+        engulfingMeetsQuality({ ...quality, side: "short" });
+      if (
+        ((level.kind === "resistance" && bullishEngulfing(prev, curr)) ||
+          (level.kind === "support" && bearishEngulfing(prev, curr))) &&
+        !longEngulf &&
+        !shortEngulf
+      ) {
+        setup.detail = `Rejected engulfing — need ${quality.minBodyAtr}× ATR bodies and opposing wick under ${Math.round(quality.maxOpposingWickFrac * 100)}%`;
+      }
       const longRange =
         Boolean(config.allowRangeBreakEntry) &&
         level.kind === "resistance" &&
@@ -253,6 +339,8 @@ export function evaluatePriceAction(args: {
     const result = replayLevel({
       level,
       candles: sessionBars,
+      history: args.candles,
+      atrValues,
       atrValue,
       config: args.config,
     });

@@ -5,7 +5,14 @@ import type { Candle, ChartLevel, Position } from "../bot/types";
 import { paperFill, markToMarket } from "../bot/paper";
 import { priceMovePctFromRoe, roeFromPriceMove, sizeFromMargin, sizeFromRisk, stopTakeFromPrice, stopTakeFromRoe, favorablePriceMovePct, shouldArmGiveUp, shouldGiveUp, shouldMoveStopToBreakEven, moveStopToBreakEven, closedBackThroughLevel } from "./risk";
 import { formatClock, parseClock, sessionStatus } from "./session";
-import { bearishEngulfing, bullishEngulfing, evaluatePriceAction } from "./price-action";
+import {
+  bearishEngulfing,
+  breakTooFarThroughLevel,
+  bullishEngulfing,
+  engulfingMeetsQuality,
+  evaluatePriceAction,
+  opposingWickFraction,
+} from "./price-action";
 
 function bar(i: number, o: number, h: number, l: number, c: number): Candle {
   return {
@@ -34,6 +41,19 @@ function resistance(overrides: Partial<ChartLevel> = {}): ChartLevel {
     id: "r1",
     coin: "BTC",
     kind: "resistance",
+    price: 100,
+    note: "",
+    createdAt: 0,
+    sessionDate: "2026-09-04",
+    ...overrides,
+  };
+}
+
+function support(overrides: Partial<ChartLevel> = {}): ChartLevel {
+  return {
+    id: "s1",
+    coin: "HYPE",
+    kind: "support",
     price: 100,
     note: "",
     createdAt: 0,
@@ -83,6 +103,49 @@ describe("engulfing", () => {
     const curr = bar(1, 101.1, 101.2, 98.5, 98.7);
     assert.equal(bearishEngulfing(prev, curr), true);
     assert.equal(bullishEngulfing(prev, curr), false);
+  });
+
+  it("measures the opposing wick as a share of the bar", () => {
+    const shortTail = bar(1, 100.0, 100.1, 98.4, 99.7);
+    assert.ok(opposingWickFraction(shortTail, "short") > 0.5);
+    assert.ok(opposingWickFraction(shortTail, "long") < 0.2);
+  });
+
+  it("refuses an engulfing unless both bodies clear 0.25× ATR and the opposing wick is under 30%", () => {
+    const prev = bar(0, 100.4, 100.5, 100.35, 100.42);
+    const skinny = bar(1, 100.45, 100.48, 99.2, 99.85);
+    assert.equal(bearishEngulfing(prev, skinny), true);
+    assert.equal(
+      engulfingMeetsQuality({
+        prev,
+        curr: skinny,
+        side: "short",
+        atr: 0.8,
+        minBodyAtr: 0.25,
+        maxOpposingWickFrac: 0.3,
+      }),
+      false,
+    );
+
+    const solidPrev = bar(0, 100.25, 100.7, 100.2, 100.6);
+    const solid = bar(1, 100.65, 100.7, 99.2, 99.3);
+    assert.equal(bearishEngulfing(solidPrev, solid), true);
+    assert.equal(
+      engulfingMeetsQuality({
+        prev: solidPrev,
+        curr: solid,
+        side: "short",
+        atr: 0.8,
+        minBodyAtr: 0.25,
+        maxOpposingWickFrac: 0.3,
+      }),
+      true,
+    );
+  });
+
+  it("flags a break close more than 1.5× ATR through the level", () => {
+    assert.equal(breakTooFarThroughLevel(99.2, 100, 0.4, 1.5), true);
+    assert.equal(breakTooFarThroughLevel(99.6, 100, 0.4, 1.5), false);
   });
 });
 
@@ -205,6 +268,45 @@ describe("price action sequence", () => {
       now: OPEN + 25 * 60_000,
     });
     assert.equal(setups[0]?.phase, "watching");
+  });
+
+  it("invalidates a break whose close is more than 1.5× ATR through the level", () => {
+    const candles: Candle[] = [
+      sessionBar(0, 99.65, 99.8, 99.55, 99.7),
+      sessionBar(5, 99.7, 102.9, 99.6, 102.5),
+      sessionBar(10, 102.4, 102.6, 102.1, 102.3),
+    ];
+    const { signal, setups } = evaluatePriceAction({
+      coin: "BTC",
+      candles,
+      levels: [resistance()],
+      config: DEFAULT_STRATEGY,
+      now: OPEN + 15 * 60_000,
+    });
+    assert.equal(setups[0]?.phase, "failed");
+    assert.equal(signal.action, "hold");
+    assert.match(setups[0]?.detail ?? "", /1\.5× ATR/);
+  });
+
+  it("rejects a short engulfing of a doji with a long opposing wick", () => {
+    const candles: Candle[] = [
+      sessionBar(0, 100.6, 100.8, 100.4, 100.5, "HYPE"),
+      sessionBar(5, 100.5, 100.55, 99.55, 99.65, "HYPE"),
+      sessionBar(10, 99.65, 99.85, 99.5, 99.7, "HYPE"),
+      sessionBar(15, 99.7, 99.9, 99.55, 99.6, "HYPE"),
+      sessionBar(20, 99.62, 99.7, 99.58, 99.64, "HYPE"),
+      sessionBar(25, 99.66, 99.72, 98.85, 99.5, "HYPE"),
+    ];
+    const { signal, setups } = evaluatePriceAction({
+      coin: "HYPE",
+      candles,
+      levels: [support()],
+      config: { ...DEFAULT_STRATEGY, allowRangeBreakEntry: false },
+      now: OPEN + 30 * 60_000,
+    });
+    assert.notEqual(signal.action, "short");
+    assert.equal(setups[0]?.phase, "consolidated");
+    assert.match(setups[0]?.detail ?? "", /Rejected engulfing/);
   });
 
   it("does not enter outside the New York session", () => {
