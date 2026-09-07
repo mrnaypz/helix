@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Fill, Position } from "./types";
-import { closedTradesFromFills, snapshotClosedTrade } from "./trades";
+import { closedTradesFromFills, snapshotClosedTrade, visibleClosedTrades } from "./trades";
 
 function long(extra: Partial<Position> = {}): Position {
   return {
@@ -95,5 +95,19 @@ describe("closed trade recap", () => {
     ]);
     assert.equal(recaps[0]?.entryPrice, 40);
     assert.equal(recaps[0]?.exitPrice, 39.8);
+  });
+
+  it("merges stored recaps with fill rebuilds", () => {
+    const fills = [
+      fill({ id: "c1", ts: 2_000, action: "close", price: 40.4, pnl: 10 }),
+      fill({ id: "o1", ts: 1_000, action: "open", price: 40, pnl: 0, reason: "entry" }),
+    ];
+    const visible = visibleClosedTrades({
+      fills,
+      closedTrades: [],
+      config: { strategy: { maxLeverage: 10 } } as never,
+    });
+    assert.equal(visible.length, 1);
+    assert.equal(visible[0]?.entryPrice, 40);
   });
 });

@@ -96,8 +96,23 @@ export function closedTradesFromFills(fills: Fill[], leverage = 10): ClosedTrade
 }
 
 export function ensureClosedTrades(state: Pick<BotState, "closedTrades" | "fills" | "config">): ClosedTrade[] {
-  if (state.closedTrades?.length) return state.closedTrades;
-  const rebuilt = closedTradesFromFills(state.fills ?? [], state.config.strategy.maxLeverage);
-  state.closedTrades = rebuilt;
-  return rebuilt;
+  const visible = visibleClosedTrades(state);
+  if (!state.closedTrades?.length && visible.length) state.closedTrades = visible;
+  return state.closedTrades ?? visible;
+}
+
+export function visibleClosedTrades(state: Pick<BotState, "closedTrades" | "fills" | "config">): ClosedTrade[] {
+  const leverage = state.config?.strategy?.maxLeverage ?? 10;
+  const rebuilt = closedTradesFromFills(state.fills ?? [], leverage);
+  const stored = state.closedTrades ?? [];
+  const map = new Map<string, ClosedTrade>();
+  for (const trade of rebuilt) {
+    if (trade?.id) map.set(trade.id, trade);
+  }
+  for (const trade of stored) {
+    if (!trade?.id) continue;
+    const prev = map.get(trade.id);
+    map.set(trade.id, trade.complete || !prev ? trade : { ...prev, ...trade });
+  }
+  return [...map.values()].sort((a, b) => (b.closedAt ?? 0) - (a.closedAt ?? 0));
 }

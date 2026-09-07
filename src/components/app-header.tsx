@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenIcon, CrosshairIcon, LayoutDashboardIcon, SlidersHorizontalIcon } from "lucide-react";
+import { BookOpenIcon, CrosshairIcon, HistoryIcon, LayoutDashboardIcon, SlidersHorizontalIcon } from "lucide-react";
 import { cn } from "cn";
 
 const links = [
   { href: "/", label: "Desk", icon: LayoutDashboardIcon },
+  { href: "/trades", label: "Trades", icon: HistoryIcon },
   { href: "/levels", label: "Levels", icon: CrosshairIcon },
   { href: "/strategy", label: "Rules", icon: SlidersHorizontalIcon },
   { href: "/runbook", label: "Runbook", icon: BookOpenIcon },
@@ -47,7 +48,7 @@ export function AppHeader() {
         </div>
       </header>
       <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#07080a] pb-[env(safe-area-inset-bottom)] md:hidden">
-        <div className="pointer-events-auto grid grid-cols-4">
+        <div className="pointer-events-auto grid grid-cols-5">
           {links.map((link) => {
             const active = pathname === link.href;
             const Icon = link.icon;
