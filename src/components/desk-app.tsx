@@ -25,7 +25,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PublicBotSnapshot } from "@/lib/bot/types";
-import { clsxPositive, compactNumber, formatPx, money, pct, relativeTime, signedMoney } from "@/lib/format";
+import {
+  clsxPositive,
+  compactNumber,
+  formatNyTime,
+  formatPx,
+  money,
+  pct,
+  relativeTimeLabel,
+  signedMoney,
+} from "@/lib/format";
 import { LevelsBoard } from "@/components/levels-board";
 import { cn } from "cn";
 
@@ -39,6 +48,7 @@ function statusTone(status: string) {
 export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   const [snap, setSnap] = useState<PublicBotSnapshot>(initial);
   const [error, setError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,10 +68,13 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           if (!cancelled) setError(err.message);
         });
     };
-    const id = setInterval(load, 2500);
+    setNowMs(Date.now());
+    const clock = window.setInterval(() => setNowMs(Date.now()), 1000);
+    const id = window.setInterval(load, 2500);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      window.clearInterval(clock);
+      window.clearInterval(id);
     };
   }, []);
 
@@ -74,7 +87,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
   const chartData = useMemo(
     () =>
       (snap?.state.equityCurve ?? []).map((p) => ({
-        t: new Date(p.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        t: formatNyTime(p.ts),
         equity: Number(p.equity.toFixed(2)),
       })),
     [snap],
@@ -136,7 +149,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
               {session.clock} · {session.inSession ? "NY open" : "NY closed"}
             </Badge>
             {state.lastTickAt ? (
-              <span className="text-xs text-muted-foreground">Tick {relativeTime(state.lastTickAt)}</span>
+              <span className="text-xs text-muted-foreground">Tick {relativeTimeLabel(state.lastTickAt, nowMs)}</span>
             ) : (
               <span className="text-xs text-muted-foreground">Engine idle</span>
             )}
@@ -416,7 +429,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                 <TableBody>
                   {state.fills.slice(0, 12).map((f) => (
                     <TableRow key={f.id}>
-                      <TableCell className="text-muted-foreground">{relativeTime(f.ts)}</TableCell>
+                      <TableCell className="text-muted-foreground">{relativeTimeLabel(f.ts, nowMs)}</TableCell>
                       <TableCell>{f.coin}</TableCell>
                       <TableCell>
                         {f.action} {f.side}
@@ -455,7 +468,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
                       >
                         {e.level}
                       </span>
-                      <span className="text-xs text-muted-foreground">{relativeTime(e.ts)}</span>
+                      <span className="text-xs text-muted-foreground">{relativeTimeLabel(e.ts, nowMs)}</span>
                     </div>
                     <p className="mt-1 text-foreground/90">{e.message}</p>
                   </li>

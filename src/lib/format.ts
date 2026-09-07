@@ -32,13 +32,26 @@ export function formatPx(n: number): string {
   return n.toPrecision(4);
 }
 
-export function relativeTime(ts: number, now = Date.now()): string {
+export function relativeTime(ts: number, now: number): string {
   const delta = Math.max(0, now - ts);
   if (delta < 5_000) return "just now";
   if (delta < 60_000) return `${Math.floor(delta / 1000)}s ago`;
   if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
   if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`;
   return new Date(ts).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+}
+
+export function relativeTimeLabel(ts: number, now: number | null): string {
+  if (now === null) return "…";
+  return relativeTime(ts, now);
+}
+
+export function formatNyTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
 }
 
 export function clsxPositive(n: number): string {
