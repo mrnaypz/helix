@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatNyTime, relativeTime, relativeTimeLabel } from "./format";
+import { formatDuration, formatNyTime, relativeTime, relativeTimeLabel } from "./format";
 
 describe("relativeTime", () => {
   const now = Date.UTC(2026, 8, 7, 14, 0, 11);
@@ -13,6 +13,14 @@ describe("relativeTime", () => {
   it("keeps a stable placeholder until the client clock is ready", () => {
     assert.equal(relativeTimeLabel(now - 10_000, null), "…");
     assert.equal(relativeTimeLabel(now - 10_000, now), "10s ago");
+  });
+});
+
+describe("formatDuration", () => {
+  it("formats hold time", () => {
+    assert.equal(formatDuration(45_000), "45s");
+    assert.equal(formatDuration(5 * 60_000), "5m");
+    assert.equal(formatDuration(90 * 60_000), "1h 30m");
   });
 });
 

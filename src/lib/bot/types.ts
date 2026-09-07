@@ -131,6 +131,33 @@ export type Fill = {
   mode: ExecutionMode;
 };
 
+export type ClosedTrade = {
+  id: string;
+  openedAt: number;
+  closedAt: number;
+  coin: string;
+  side: Side;
+  size: number;
+  entryPrice: number;
+  exitPrice: number;
+  notional: number;
+  margin: number;
+  realizedPnl: number;
+  priceMovePct: number;
+  roePct: number;
+  stopPrice: number | null;
+  takePrice: number | null;
+  stopPct: number | null;
+  takePct: number | null;
+  levelPrice: number | null;
+  leverage: number;
+  fee: number;
+  reason: string;
+  breakEvenStop: boolean;
+  mode: ExecutionMode;
+  complete: boolean;
+};
+
 export type BotEvent = {
   id: string;
   ts: number;
@@ -209,6 +236,7 @@ export type BotState = {
   paper: PaperAccount;
   positions: Position[];
   fills: Fill[];
+  closedTrades: ClosedTrade[];
   events: BotEvent[];
   equityCurve: EquityPoint[];
   lastSignals: Signal[];

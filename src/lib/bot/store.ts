@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInitialState, CORE_COINS, DEFAULT_CONFIG, DEFAULT_STRATEGY, TRADE_LEVERAGE } from "./defaults";
+import { closedTradesFromFills } from "./trades";
 import type { BotConfig, BotState, StrategyConfig } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -77,6 +78,10 @@ export async function loadState(): Promise<BotState> {
     parsed.config = mergeConfig(parsed.config);
     parsed.events = parsed.events ?? [];
     parsed.fills = parsed.fills ?? [];
+    parsed.closedTrades = parsed.closedTrades ?? [];
+    if (parsed.closedTrades.length === 0 && parsed.fills.length > 0) {
+      parsed.closedTrades = closedTradesFromFills(parsed.fills, parsed.config.strategy.maxLeverage);
+    }
     parsed.positions = (parsed.positions ?? []).map((p) => ({
       ...p,
       breakEvenStop: p.breakEvenStop ?? false,
@@ -104,6 +109,7 @@ export async function saveState(state: BotState): Promise<void> {
     ...state,
     events: state.events.slice(0, 250),
     fills: state.fills.slice(0, 250),
+    closedTrades: (state.closedTrades ?? []).slice(0, 100),
     equityCurve: state.equityCurve.slice(-500),
   };
   await writeFile(STATE_PATH, JSON.stringify(slim, null, 2));

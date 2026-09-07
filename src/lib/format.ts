@@ -46,6 +46,16 @@ export function relativeTimeLabel(ts: number, now: number | null): string {
   return relativeTime(ts, now);
 }
 
+export function formatDuration(ms: number): string {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  const rem = min % 60;
+  return rem ? `${hr}h ${rem}m` : `${hr}h`;
+}
+
 export function formatNyTime(ts: number): string {
   return new Date(ts).toLocaleTimeString("en-US", {
     hour: "2-digit",

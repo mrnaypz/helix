@@ -79,6 +79,7 @@ export function createInitialState(config: BotConfig = DEFAULT_CONFIG): BotState
     paper: createPaperAccount(config.startingEquity),
     positions: [],
     fills: [],
+    closedTrades: [],
     events: [],
     equityCurve: [{ ts: Date.now(), equity: config.startingEquity }],
     lastSignals: [],

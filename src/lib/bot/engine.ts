@@ -1,6 +1,7 @@
 import { createInitialState, createPaperAccount, DEFAULT_CONFIG, DEFAULT_STRATEGY, TRADE_LEVERAGE } from "./defaults";
 import { markToMarket, paperFill } from "./paper";
 import { loadState, migrateCoins, saveState } from "./store";
+import { snapshotClosedTrade } from "./trades";
 import { evaluatePriceAction } from "../strategy/price-action";
 import { sessionStatus } from "../strategy/session";
 import {
@@ -56,6 +57,7 @@ export class BotEngine {
       maxLeverage: TRADE_LEVERAGE,
     };
     this.state.config.coins = migrateCoins(this.state.config.coins);
+    this.state.closedTrades = this.state.closedTrades ?? [];
   }
 
   static async create(): Promise<BotEngine> {
@@ -609,6 +611,8 @@ export class BotEngine {
     });
     this.state.positions = this.state.positions.filter((p) => p.coin !== coin);
     this.recordFill(fill);
+    this.state.closedTrades.unshift(snapshotClosedTrade(position, fill));
+    this.state.closedTrades = this.state.closedTrades.slice(0, 100);
     if (reason.toLowerCase().includes("stop")) {
       this.state.cooldownUntil[coin] = Date.now() + this.state.config.strategy.cooldownMinutes * 60_000;
     }

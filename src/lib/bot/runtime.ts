@@ -18,6 +18,7 @@ export async function getEngine(): Promise<BotEngine> {
       typeof globalForBot.helixEngine.state.config.strategy.maxOpposingWickFrac !== "number" ||
       typeof globalForBot.helixEngine.state.config.strategy.flattenOnLevelFail !== "boolean" ||
       typeof globalForBot.helixEngine.state.config.strategy.oneToOneTarget !== "boolean" ||
+      !Array.isArray(globalForBot.helixEngine.state.closedTrades) ||
       globalForBot.helixEngine.state.config.strategy.maxLeverage !== TRADE_LEVERAGE ||
       !globalForBot.helixEngine.state.config.coins.includes("HYPE"))
   ) {

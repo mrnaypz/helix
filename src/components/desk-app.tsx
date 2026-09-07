@@ -24,7 +24,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Position, PublicBotSnapshot } from "@/lib/bot/types";
+import type { ClosedTrade, Position, PublicBotSnapshot } from "@/lib/bot/types";
+import {
+  clsxPositive,
+  compactNumber,
+  formatDuration,
+  formatNyTime,
+  formatPx,
+  money,
+  pct,
+  relativeTimeLabel,
+  signedMoney,
+} from "@/lib/format";
+import { LevelsBoard } from "@/components/levels-board";
+import { cn } from "cn";
 
 function useClientNow() {
   const hydrated = useSyncExternalStore(
@@ -40,18 +53,6 @@ function useClientNow() {
   }, []);
   return hydrated ? nowMs : null;
 }
-import {
-  clsxPositive,
-  compactNumber,
-  formatNyTime,
-  formatPx,
-  money,
-  pct,
-  relativeTimeLabel,
-  signedMoney,
-} from "@/lib/format";
-import { LevelsBoard } from "@/components/levels-board";
-import { cn } from "cn";
 
 function statusTone(status: string) {
   if (status === "running") return "bg-emerald-400/15 text-emerald-300 border-emerald-400/20";
@@ -395,6 +396,27 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
         </Card>
       </div>
 
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Closed trades</h2>
+          <p className="text-sm text-muted-foreground">
+            Full ticket after each flatten. Older closes rebuilt from fills may be missing stop, target, and level.
+          </p>
+        </div>
+        {(state.closedTrades ?? []).length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-sm text-muted-foreground">
+              No closed trades yet. The next stop, target, level-fail, session flatten, or kill switch will leave a
+              recap here.
+            </CardContent>
+          </Card>
+        ) : (
+          (state.closedTrades ?? []).slice(0, 8).map((trade) => (
+            <ClosedTradeTicket key={trade.id} trade={trade} nowMs={nowMs} />
+          ))
+        )}
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <Card>
           <CardHeader className="border-b">
@@ -563,6 +585,69 @@ function OpenPositionTicket({ position: p, nowMs }: { position: Position; nowMs:
           value={pct(move)}
           hint={p.side === "long" ? "Mark vs entry" : "Entry vs mark (short)"}
           tone={move}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClosedTradeTicket({ trade: t, nowMs }: { trade: ClosedTrade; nowMs: number | null }) {
+  const held = t.closedAt - t.openedAt;
+  return (
+    <Card className="border-white/15">
+      <CardHeader className="border-b">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              Closed {t.coin}
+              <span className={t.side === "long" ? "text-emerald-400" : "text-rose-400"}>{t.side}</span>
+              <span className="text-sm font-normal text-muted-foreground">{t.leverage}x</span>
+              <span className={cn("text-sm font-normal", clsxPositive(t.realizedPnl))}>
+                {signedMoney(t.realizedPnl)}
+              </span>
+            </CardTitle>
+            <CardDescription>
+              {t.reason}
+              {t.breakEvenStop ? " · stop had moved to break-even" : ""}
+              {!t.complete ? " · rebuilt from fills (stop, target, and level were not stored)" : ""}
+            </CardDescription>
+          </div>
+          <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+            {formatNyTime(t.openedAt)} → {formatNyTime(t.closedAt)} · {formatDuration(held)} ·{" "}
+            {relativeTimeLabel(t.closedAt, nowMs)}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+        <TicketField label="Size" value={t.size.toPrecision(6)} hint={`Notional ${money(t.notional)}`} />
+        <TicketField label="Entry" value={t.entryPrice ? formatPx(t.entryPrice) : "—"} hint={`Exit ${formatPx(t.exitPrice)}`} />
+        <TicketField
+          label="Realized"
+          value={signedMoney(t.realizedPnl)}
+          hint={`${pct(t.priceMovePct)} price · ${pct(t.roePct)} ROE · fee ${money(t.fee)}`}
+          tone={t.realizedPnl}
+        />
+        <TicketField label="Margin" value={money(t.margin)} hint={`${t.leverage}x`} />
+        <TicketField
+          label="Stop"
+          value={t.stopPrice != null ? formatPx(t.stopPrice) : "—"}
+          hint={t.stopPct != null ? `${pct(t.stopPct)} from entry${t.breakEvenStop ? " · BE" : ""}` : "Not stored"}
+        />
+        <TicketField
+          label="Take profit"
+          value={t.takePrice != null ? formatPx(t.takePrice) : "—"}
+          hint={t.takePct != null ? `${pct(t.takePct)} from entry` : "Not stored"}
+        />
+        <TicketField
+          label="Charted level"
+          value={t.levelPrice != null ? formatPx(t.levelPrice) : "—"}
+          hint={t.complete ? "Level used for the failed-level exit" : "Not stored on this close"}
+        />
+        <TicketField
+          label="Price move"
+          value={pct(t.priceMovePct)}
+          hint="Entry to exit, signed for the side"
+          tone={t.priceMovePct}
         />
       </CardContent>
     </Card>
