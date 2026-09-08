@@ -28,16 +28,16 @@ function priceFromLegacyRoe(price: number | undefined, roe: number | undefined, 
 }
 
 function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConfig {
-  const incoming = (raw ?? {}) as LegacyStrategy;
-  const fromEma = !("sessionStartMinutes" in incoming);
+  const incoming = (raw ?? {}) as LegacyStrategy & { maxBreakThroughAtr?: number };
+  const { maxBreakThroughAtr: _dropBreakThrough, ...kept } = incoming;
+  const fromEma = !("sessionStartMinutes" in kept);
   return {
     ...DEFAULT_STRATEGY,
-    ...incoming,
+    ...kept,
     maxPositions: 1,
     maxLeverage: TRADE_LEVERAGE,
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
     allowRangeBreakEntry: incoming.allowRangeBreakEntry ?? DEFAULT_STRATEGY.allowRangeBreakEntry,
-    maxBreakThroughAtr: incoming.maxBreakThroughAtr ?? DEFAULT_STRATEGY.maxBreakThroughAtr,
     minEngulfBodyAtr: incoming.minEngulfBodyAtr ?? DEFAULT_STRATEGY.minEngulfBodyAtr,
     maxOpposingWickFrac: incoming.maxOpposingWickFrac ?? DEFAULT_STRATEGY.maxOpposingWickFrac,
     flattenOnLevelFail: incoming.flattenOnLevelFail ?? DEFAULT_STRATEGY.flattenOnLevelFail,

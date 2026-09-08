@@ -365,7 +365,7 @@ export function DeskApp({ initial }: { initial: PublicBotSnapshot }) {
           <CardHeader className="border-b">
             <CardTitle>Last signals</CardTitle>
             <CardDescription>
-              5-minute New York session, last closed bar. Thin dojis, long opposing wicks, and blow-through breaks are
+              5-minute New York session, last closed bar. Thin dojis and long opposing wicks on engulfing triggers are
               rejected.
             </CardDescription>
           </CardHeader>

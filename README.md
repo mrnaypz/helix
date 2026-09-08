@@ -1,6 +1,6 @@
 # Helix
 
-Hyperliquid execution desk for a New York session price-action strategy. You chart support and resistance each morning. The bot watches 5-minute candles during the cash session for a break, a few bars of consolidation, then either an engulfing continuation or a close beyond the post-break range.
+Hyperliquid execution desk for a New York session price-action strategy. You chart support and resistance each morning. The bot watches 5-minute candles during the cash session for a break, a few bars of consolidation, then either an engulfing continuation or a close beyond the post-break range. Engulfing entries need both bodies at least 0.25× ATR and the trigger’s opposing wick under 30% of the bar.
 
 ## Daily workflow
 

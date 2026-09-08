@@ -7,7 +7,6 @@ import { priceMovePctFromRoe, roeFromPriceMove, sizeFromMargin, sizeFromRisk, st
 import { formatClock, parseClock, sessionStatus } from "./session";
 import {
   bearishEngulfing,
-  breakTooFarThroughLevel,
   bullishEngulfing,
   engulfingMeetsQuality,
   evaluatePriceAction,
@@ -143,10 +142,6 @@ describe("engulfing", () => {
     );
   });
 
-  it("flags a break close more than 1.5× ATR through the level", () => {
-    assert.equal(breakTooFarThroughLevel(99.2, 100, 0.4, 1.5), true);
-    assert.equal(breakTooFarThroughLevel(99.6, 100, 0.4, 1.5), false);
-  });
 });
 
 describe("price action sequence", () => {
@@ -270,7 +265,7 @@ describe("price action sequence", () => {
     assert.equal(setups[0]?.phase, "watching");
   });
 
-  it("invalidates a break whose close is more than 1.5× ATR through the level", () => {
+  it("still treats a large ATR close through the level as a valid break", () => {
     const candles: Candle[] = [
       sessionBar(0, 99.65, 99.8, 99.55, 99.7),
       sessionBar(5, 99.7, 102.9, 99.6, 102.5),
@@ -283,9 +278,9 @@ describe("price action sequence", () => {
       config: DEFAULT_STRATEGY,
       now: OPEN + 15 * 60_000,
     });
-    assert.equal(setups[0]?.phase, "failed");
+    assert.equal(setups[0]?.phase, "broken");
     assert.equal(signal.action, "hold");
-    assert.match(setups[0]?.detail ?? "", /1\.5× ATR/);
+    assert.match(setups[0]?.detail ?? "", /Consolidating/);
   });
 
   it("rejects a short engulfing of a doji with a long opposing wick", () => {

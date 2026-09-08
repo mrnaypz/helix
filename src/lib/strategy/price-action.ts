@@ -90,11 +90,6 @@ export function atrPriorTo(history: Candle[], atrValues: number[], barTime: numb
   return sum / end;
 }
 
-export function breakTooFarThroughLevel(close: number, levelPrice: number, atr: number, maxAtr: number): boolean {
-  if (atr <= 0 || maxAtr <= 0) return false;
-  return Math.abs(close - levelPrice) > maxAtr * atr + 1e-12;
-}
-
 export function engulfingMeetsQuality(args: {
   prev: Candle;
   curr: Candle;
@@ -149,13 +144,6 @@ function replayLevel(args: {
       const longBreak = level.kind === "resistance" && prev.c <= level.price && curr.c > level.price;
       const shortBreak = level.kind === "support" && prev.c >= level.price && curr.c < level.price;
       if (longBreak || shortBreak) {
-        const atr = atrPriorTo(history, atrValues, curr.t);
-        if (breakTooFarThroughLevel(curr.c, level.price, atr, config.maxBreakThroughAtr ?? 1.5)) {
-          phase = "failed";
-          setup.brokeAt = curr.t;
-          setup.detail = `Invalidated — break close more than ${config.maxBreakThroughAtr ?? 1.5}× ATR through the level`;
-          break;
-        }
         phase = "broken";
         breakIndex = i;
         pauseBars = 0;

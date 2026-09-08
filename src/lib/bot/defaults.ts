@@ -24,7 +24,6 @@ export const DEFAULT_STRATEGY: StrategyConfig = {
   maxBarsAfterBreak: 18,
   minConsolidationBars: 3,
   allowRangeBreakEntry: true,
-  maxBreakThroughAtr: 1.5,
   minEngulfBodyAtr: 0.25,
   maxOpposingWickFrac: 0.3,
   flattenOnLevelFail: true,
