@@ -23,7 +23,7 @@ export default function RunbookPage() {
             <ol className="list-decimal space-y-2 pl-5 text-foreground/90">
               <li>You plot support and resistance from your morning chart (previous day high/low, overnight range, equal highs, etc.).</li>
               <li>Start the engine when you want it watching. Entries are blocked until 09:30 ET (editable).</li>
-              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then either a closed engulfing candle that finishes beyond the previous wick, or a continuation close beyond the high/low of the breakout plus that consolidation. Engulfing entries need both bodies at least 0.25× ATR and the trigger’s opposing wick under 30% of the bar. A large breakout candle does not kill the level.</li>
+              <li>On the 5-minute chart it waits for a close through a level, at least a few bars of consolidation (price does not have to tag the level), then either a closed engulfing candle that finishes beyond the previous wick, or a continuation close beyond the high/low of the breakout plus that consolidation. Engulfing quality is on Rules: previous-bar body and trigger-bar body each have their own ATR minimum (0.25× by default; 0 turns that filter off), and the trigger’s opposing wick must stay under 30% of the bar. A large breakout candle does not kill the level.</li>
               <li>If a 5m candle closes back through the level before entry, that level is dead. No trade. If you are already in, the same close flattens the position so it does not have to ride the 0.5% stop.</li>
               <li>One market at a time, always 10x on BTC, ETH, SOL, and HYPE. The first valid trigger takes the slot. Size is 70% of the account as margin. Stop is −0.5% of price and target is +1% (5% / 10% ROE at 10x). On a slow day, the Desk 1:1 switch forces take profit to 0.5% and ignores the 1% target. After +0.55% the stop moves to break-even. After +0.8% it waits five 5m candles and flattens if the target is still open.</li>
               <li>At 16:00 ET it flattens (optional). Kill switch is always available.</li>
@@ -67,7 +67,7 @@ export default function RunbookPage() {
             <ol className="list-decimal space-y-2 pl-5">
               <li>A 5m candle closes above your resistance.</li>
               <li>At least three later 5m candles stay above the level. They do not have to wick into it.</li>
-              <li>A later 5m candle is bullish and fully engulfs the previous candle&apos;s body, and its close is above the previous wick (not only the body). Both that bar and the previous bar need a body of at least 0.25× ATR, and the trigger’s opposing wick must be under 30% of the bar. That close is the entry.</li>
+              <li>A later 5m candle is bullish and fully engulfs the previous candle&apos;s body, and its close is above the previous wick (not only the body). Rules sets a separate ATR minimum for that previous bar and for the engulfing trigger (0.25× each by default). The trigger’s opposing wick must be under 30% of the bar. That close is the entry.</li>
               <li>Or a later 5m candle is bullish and closes above the highest wick of the breakout candle and the consolidation after it, even if it does not engulf the previous bar. That is also the entry.</li>
               <li>If any 5m candle closes back below the resistance before entry, the level is invalidated. The bot will not trade it.</li>
             </ol>

@@ -27,6 +27,12 @@ function priceFromLegacyRoe(price: number | undefined, roe: number | undefined, 
   return fallback;
 }
 
+function clampAtrMult(value: number | undefined, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, value);
+  if (typeof fallback === "number" && Number.isFinite(fallback)) return Math.max(0, fallback);
+  return 0;
+}
+
 function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConfig {
   const incoming = (raw ?? {}) as LegacyStrategy & { maxBreakThroughAtr?: number };
   const { maxBreakThroughAtr: _dropBreakThrough, ...kept } = incoming;
@@ -38,7 +44,11 @@ function migrateStrategy(raw: Partial<StrategyConfig> | undefined): StrategyConf
     maxLeverage: TRADE_LEVERAGE,
     minConsolidationBars: incoming.minConsolidationBars ?? DEFAULT_STRATEGY.minConsolidationBars,
     allowRangeBreakEntry: incoming.allowRangeBreakEntry ?? DEFAULT_STRATEGY.allowRangeBreakEntry,
-    minEngulfBodyAtr: incoming.minEngulfBodyAtr ?? DEFAULT_STRATEGY.minEngulfBodyAtr,
+    minEngulfBodyAtr: clampAtrMult(incoming.minEngulfBodyAtr, DEFAULT_STRATEGY.minEngulfBodyAtr),
+    minPrevBodyAtr: clampAtrMult(
+      incoming.minPrevBodyAtr,
+      incoming.minEngulfBodyAtr ?? DEFAULT_STRATEGY.minPrevBodyAtr,
+    ),
     maxOpposingWickFrac: incoming.maxOpposingWickFrac ?? DEFAULT_STRATEGY.maxOpposingWickFrac,
     flattenOnLevelFail: incoming.flattenOnLevelFail ?? DEFAULT_STRATEGY.flattenOnLevelFail,
     oneToOneTarget: incoming.oneToOneTarget ?? DEFAULT_STRATEGY.oneToOneTarget,

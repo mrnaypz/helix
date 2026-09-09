@@ -209,23 +209,38 @@ export function StrategyForm({ initial }: { initial: BotConfig }) {
         <CardHeader>
           <CardTitle>Candle quality</CardTitle>
           <CardDescription>
-            ATR is a typical recent 5m stretch. An engulfing needs a real body on both the trigger and the previous bar
-            (0.25× ATR), and the trigger cannot be mostly an opposing wick (buy tail on a short, sell tail on a long).
-            A close through the level still counts as a break even if it is a large candle.
+            ATR is the average size of recent 5-minute bars — a typical high-to-low, not a target you sit above or
+            below. 0.25 means that candle’s body must be at least a quarter of a typical bar. 1.0 means the body is as
+            big as a typical whole bar. 0 turns the size filter off for that candle, so even a doji can pass. Negative
+            numbers are treated as 0; a body cannot be smaller than nothing. The trigger still cannot be mostly an
+            opposing wick (buy tail on a short, sell tail on a long). A close through the level still counts as a
+            break even if it is a large candle.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Num
+            label="Min previous body (× ATR)"
+            hint="Candle immediately before the engulfing trigger. 0 = no minimum."
+            value={s.minPrevBodyAtr ?? s.minEngulfBodyAtr ?? 0.25}
+            step="0.05"
+            min="0"
+            onChange={(v) => setS({ minPrevBodyAtr: Number.isFinite(v) ? Math.max(0, v) : 0 })}
+          />
           <Num
             label="Min engulfing body (× ATR)"
-            value={s.minEngulfBodyAtr}
+            hint="The trigger candle itself. 0 = no minimum."
+            value={s.minEngulfBodyAtr ?? 0.25}
             step="0.05"
-            onChange={(v) => setS({ minEngulfBodyAtr: v })}
+            min="0"
+            onChange={(v) => setS({ minEngulfBodyAtr: Number.isFinite(v) ? Math.max(0, v) : 0 })}
           />
           <Num
             label="Max opposing wick (% of bar)"
+            hint="Share of the trigger bar that can be the opposite wick."
             value={Math.round((s.maxOpposingWickFrac ?? 0.3) * 100)}
             step="1"
-            onChange={(v) => setS({ maxOpposingWickFrac: v / 100 })}
+            min="0"
+            onChange={(v) => setS({ maxOpposingWickFrac: Number.isFinite(v) ? Math.max(0, v) / 100 : 0 })}
           />
         </CardContent>
       </Card>
@@ -288,18 +303,22 @@ function Field({
 
 function Num({
   label,
+  hint,
   value,
   onChange,
   step = "1",
+  min,
 }: {
   label: string;
+  hint?: string;
   value: number;
   onChange: (v: number) => void;
   step?: string;
+  min?: string;
 }) {
   return (
-    <Field label={label}>
-      <Input type="number" step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    <Field label={label} hint={hint}>
+      <Input type="number" step={step} min={min} value={value} onChange={(e) => onChange(Number(e.target.value))} />
     </Field>
   );
 }

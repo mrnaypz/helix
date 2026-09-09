@@ -120,7 +120,8 @@ describe("engulfing", () => {
         curr: skinny,
         side: "short",
         atr: 0.8,
-        minBodyAtr: 0.25,
+        minPrevBodyAtr: 0.25,
+        minTriggerBodyAtr: 0.25,
         maxOpposingWickFrac: 0.3,
       }),
       false,
@@ -135,7 +136,38 @@ describe("engulfing", () => {
         curr: solid,
         side: "short",
         atr: 0.8,
-        minBodyAtr: 0.25,
+        minPrevBodyAtr: 0.25,
+        minTriggerBodyAtr: 0.25,
+        maxOpposingWickFrac: 0.3,
+      }),
+      true,
+    );
+  });
+
+  it("lets the previous bar and the trigger use different ATR minima, and 0 turns a filter off", () => {
+    const thinPrev = bar(0, 100.4, 100.5, 100.35, 100.42);
+    const solidShort = bar(1, 100.65, 100.7, 99.2, 99.3);
+    assert.equal(bearishEngulfing(thinPrev, solidShort), true);
+    assert.equal(
+      engulfingMeetsQuality({
+        prev: thinPrev,
+        curr: solidShort,
+        side: "short",
+        atr: 0.8,
+        minPrevBodyAtr: 0.25,
+        minTriggerBodyAtr: 0.25,
+        maxOpposingWickFrac: 0.3,
+      }),
+      false,
+    );
+    assert.equal(
+      engulfingMeetsQuality({
+        prev: thinPrev,
+        curr: solidShort,
+        side: "short",
+        atr: 0.8,
+        minPrevBodyAtr: 0,
+        minTriggerBodyAtr: 0.25,
         maxOpposingWickFrac: 0.3,
       }),
       true,

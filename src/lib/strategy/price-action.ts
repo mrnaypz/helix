@@ -90,20 +90,30 @@ export function atrPriorTo(history: Candle[], atrValues: number[], barTime: numb
   return sum / end;
 }
 
+function minBodyNeed(atr: number, minAtr: number): number {
+  if (!(minAtr > 0)) return 0;
+  return minAtr * atr;
+}
+
 export function engulfingMeetsQuality(args: {
   prev: Candle;
   curr: Candle;
   side: "long" | "short";
   atr: number;
-  minBodyAtr: number;
+  minPrevBodyAtr: number;
+  minTriggerBodyAtr: number;
   maxOpposingWickFrac: number;
 }): boolean {
-  const { prev, curr, side, atr, minBodyAtr, maxOpposingWickFrac } = args;
+  const { prev, curr, side, atr, minPrevBodyAtr, minTriggerBodyAtr, maxOpposingWickFrac } = args;
   if (atr <= 0) return false;
-  const need = minBodyAtr * atr;
-  if (candleBody(prev) + 1e-12 < need) return false;
-  if (candleBody(curr) + 1e-12 < need) return false;
+  if (candleBody(prev) + 1e-12 < minBodyNeed(atr, minPrevBodyAtr)) return false;
+  if (candleBody(curr) + 1e-12 < minBodyNeed(atr, minTriggerBodyAtr)) return false;
   return opposingWickFraction(curr, side) + 1e-12 < maxOpposingWickFrac;
+}
+
+function atrNeedLabel(minAtr: number, what: string): string {
+  if (!(minAtr > 0)) return `no min ${what}`;
+  return `${minAtr}× ATR ${what}`;
 }
 
 function replayLevel(args: {
@@ -197,7 +207,8 @@ function replayLevel(args: {
         prev,
         curr,
         atr,
-        minBodyAtr: config.minEngulfBodyAtr ?? 0.25,
+        minPrevBodyAtr: config.minPrevBodyAtr ?? config.minEngulfBodyAtr ?? 0.25,
+        minTriggerBodyAtr: config.minEngulfBodyAtr ?? 0.25,
         maxOpposingWickFrac: config.maxOpposingWickFrac ?? 0.3,
       };
       const longEngulf =
@@ -214,7 +225,7 @@ function replayLevel(args: {
         !longEngulf &&
         !shortEngulf
       ) {
-        setup.detail = `Rejected engulfing — need ${quality.minBodyAtr}× ATR bodies and opposing wick under ${Math.round(quality.maxOpposingWickFrac * 100)}%`;
+        setup.detail = `Rejected engulfing — need ${atrNeedLabel(quality.minPrevBodyAtr, "previous body")}, ${atrNeedLabel(quality.minTriggerBodyAtr, "engulfing body")}, opposing wick under ${Math.round(quality.maxOpposingWickFrac * 100)}%`;
       }
       const longRange =
         Boolean(config.allowRangeBreakEntry) &&
